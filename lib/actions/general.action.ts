@@ -29,10 +29,13 @@ export async function createFeedback(params: CreateFeedbackParams) {
 
         Please score the candidate from 0 to 100 in the following areas. Do not add categories other than the ones provided:
         - **Communication Skills**: Clarity, articulation, structured responses.
-        - **Technical Knowledge**: Understanding of key concepts for the role.
-        - **Problem-Solving**: Ability to analyze problems and propose solutions.
-        - **Cultural & Role Fit**: Alignment with company values and job role.
-        - **Confidence & Clarity**: Confidence in responses, engagement, and clarity.
+        - **Analytical Ability**: Logical problem breakdown.
+        - **Motivation & Fit**: Genuine role alignment.
+        - **Leadership & Teamwork**: Initiative, collaboration.
+        - **Current Affairs & Business Awareness**: Aware of trends.
+        - **Domain Knowledge**: Strong subject grasp.
+        - **Ethics & Maturity**: Sound judgment, integrity.
+        - **Professionalism**: Responsible, well-presented.
         `,
       system:
         "You are a professional interviewer analyzing a mock interview. Your task is to evaluate the candidate based on structured categories",

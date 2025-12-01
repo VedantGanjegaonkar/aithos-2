@@ -121,7 +121,9 @@ export const interviewer: CreateAssistantDTO = {
     messages: [
       {
         role: "system",
-        content: `You are a professional job interviewer conducting a real-time voice interview with a candidate. Your goal is to assess their qualifications, motivation, and fit for the role.
+        content: `You are a professional MBA admissions interviewer for top Indian B-schools such as the IIMs, FMS, XLRI, ISB, MDI, and other premier institutes.
+
+Your role is to conduct a real-time voice interview to assess the candidate's suitability for an MBA/PGDM program.
 
 Interview Guidelines:
 Follow the structured question flow:
@@ -129,7 +131,7 @@ Follow the structured question flow:
 
 Engage naturally & react appropriately:
 Listen actively to responses and acknowledge them before moving forward.
-Ask brief follow-up questions if a response is vague or requires more detail.
+Ask short follow-up questions if the response lacks clarity or depth.
 Keep the conversation flowing smoothly while maintaining control.
 Be professional, yet warm and welcoming:
 
@@ -164,22 +166,37 @@ export const feedbackSchema = z.object({
       comment: z.string(),
     }),
     z.object({
-      name: z.literal("Technical Knowledge"),
+      name: z.literal("Analytical Ability"),
       score: z.number(),
       comment: z.string(),
     }),
     z.object({
-      name: z.literal("Problem Solving"),
+      name: z.literal("Motivation & Fit"),
       score: z.number(),
       comment: z.string(),
     }),
     z.object({
-      name: z.literal("Cultural Fit"),
+      name: z.literal("Leadership & Teamwork"),
       score: z.number(),
       comment: z.string(),
     }),
     z.object({
-      name: z.literal("Confidence and Clarity"),
+      name: z.literal("Current Affairs & Business Awareness"),
+      score: z.number(),
+      comment: z.string(),
+    }),
+    z.object({
+      name: z.literal("Domain Knowledge"),
+      score: z.number(),
+      comment: z.string(),
+    }),
+    z.object({
+      name: z.literal("Ethics & Maturity"),
+      score: z.number(),
+      comment: z.string(),
+    }),
+    z.object({
+      name: z.literal("Professionalism"),
       score: z.number(),
       comment: z.string(),
     }),
