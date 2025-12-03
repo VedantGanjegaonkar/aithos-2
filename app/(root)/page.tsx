@@ -9,6 +9,7 @@ import {
   getInterviewsByUserId,
   getLatestInterviews,
 } from "@/lib/actions/general.action";
+import SetupInterviewStarter from "@/components/SetupInterviewStarter";
 
 async function Home() {
   const user = await getCurrentUser();
@@ -30,9 +31,7 @@ async function Home() {
             Practice real interview questions & get instant feedback
           </p>
 
-          <Button asChild className="btn-primary max-sm:w-full">
-            <Link href="/interview">Start an Interview</Link>
-          </Button>
+          <SetupInterviewStarter userId={user?.id!} />
         </div>
 
         <Image
