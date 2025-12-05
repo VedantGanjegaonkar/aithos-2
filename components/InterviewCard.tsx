@@ -4,9 +4,19 @@ import Image from "next/image";
 
 import { Button } from "./ui/button";
 import DisplayTechIcons from "./DisplayTechIcons";
+import { cn, getInstitutionImageUrl } from "@/lib/utils"; // <-- getInstitutionImageUrl is imported
 
-import { cn, getRandomInterviewCover } from "@/lib/utils";
 import { getFeedbackByInterviewId } from "@/lib/actions/general.action";
+
+// Assuming InterviewCardProps is defined elsewhere
+// interface InterviewCardProps {
+//   interviewId: string;
+//   userId: string;
+//   role: string; // This is the clean college name (e.g., "IIM Ahmedabad")
+//   type: string;
+//   techstack: string[];
+//   createdAt: Date;
+// }
 
 const InterviewCard = async ({
   interviewId,
@@ -25,84 +35,91 @@ const InterviewCard = async ({
       : null;
 
   const normalizedType = /mix/gi.test(type) ? "Mixed" : type;
-
-  const badgeColor =
-    {
-      Behavioral: "bg-light-400",
-      Mixed: "bg-light-600",
-      Technical: "bg-light-800",
-    }[normalizedType] || "bg-light-600";
-
+  
+  // NOTE: You don't need the badgeColor map if you are removing the old type badge
+  // I will keep the badge logic for the new tag area, but it will be styled differently.
+  
   const formattedDate = dayjs(
     feedback?.createdAt || createdAt || Date.now()
   ).format("MMM D, YYYY");
 
+  // --- NEW LOGIC: Get the specific image URL ---
+  const institutionImage = getInstitutionImageUrl(role); 
+
   return (
-    <div className="card-border w-[360px] max-sm:w-full min-h-96">
-      <div className="card-interview">
-        <div>
-          {/* Type Badge */}
-          <div
-            className={cn(
-              "absolute top-0 right-0 w-fit px-4 py-2 rounded-bl-lg",
-              badgeColor
-            )}
+    // Replaced card-border and w-[360px] with the new semantic panel class
+    // The panel class handles the w-80 (320px) width, gradient, and rounded corners.
+    <div className="interview-card-panel w-[360px] max-sm:w-full">
+      
+      {/* --- Image Panel Section (Wraps the image to create the margin/padding) --- */}
+      <div className="card-image-wrapper">
+        <Image
+          src={institutionImage} // <-- Uses the new deterministic function
+          alt={`Campus image of ${role}`}
+          width={500} // Width for filling the container
+          height={200} // Set fixed height for the banner look
+          className="card-image-panel" // Class for w-full, object-cover, and rounded-lg
+        />
+      </div>
+
+      {/* --- Text Content Section (Handles padding and positions the absolute tag) --- */}
+      <div className="card-content"> 
+        
+        {/* Interview Role (Main Title) */}
+        {/* We use h2 and add " - MBA" for the new card look. Styling handled by CSS. */}
+        <h2 className="text-xl font-bold mb-1">
+          {role} - MBA
+        </h2>
+
+        {/* Date & Score (This becomes the detailed sub-text) */}
+        <div className="flex flex-row gap-5 mt-1">
+          {/* Calendar Date */}
+          <div className="flex flex-row gap-2 items-center text-sm">
+            <Image
+              src="/calendar.svg"
+              width={16}
+              height={16}
+              alt="calendar"
+            />
+            <p className="text-sm">{formattedDate}</p>
+          </div>
+
+          {/* Score */}
+          <div className="flex flex-row gap-2 items-center text-sm">
+            <Image src="/star.svg" width={16} height={16} alt="star" />
+            <p className="text-sm">{feedback?.totalScore || "---"}/100</p>
+          </div>
+        </div>
+
+        {/* Optional: Placeholder for a short detail line (like "A1 (CDC) | 35.22 LPA") */}
+        <p className="line-clamp-2 mt-3">
+          {/* Using the assessment as the primary content, similar to the original card's text */}
+          {feedback?.finalAssessment ||
+            "You haven't taken this interview yet. Take it now to improve your skills."}
+        </p>
+        
+        {/* Corner Tag: Uses the normalizedType as the badge text */}
+        <span className="card-placement-tag">
+          {normalizedType.toUpperCase()} 
+        </span>
+
+      </div>
+      
+      {/* --- Footer (Tech Icons and Button) --- */}
+      <div className="flex flex-row justify-between p-4 border-t border-gray-700/50">
+        <DisplayTechIcons techStack={techstack} />
+
+        <Button className="btn-primary">
+          <Link
+            href={
+              feedback
+                ? `/interview/${interviewId}/feedback`
+                : `/interview/${interviewId}`
+            }
           >
-            <p className="badge-text ">{normalizedType}</p>
-          </div>
-
-          {/* Cover Image */}
-          <Image
-            src={getRandomInterviewCover()}
-            alt="cover-image"
-            width={90}
-            height={90}
-            className="rounded-full object-fit size-[90px]"
-          />
-
-          {/* Interview Role */}
-          <h3 className="mt-5 capitalize">{role} Interview</h3>
-
-          {/* Date & Score */}
-          <div className="flex flex-row gap-5 mt-3">
-            <div className="flex flex-row gap-2">
-              <Image
-                src="/calendar.svg"
-                width={22}
-                height={22}
-                alt="calendar"
-              />
-              <p>{formattedDate}</p>
-            </div>
-
-            <div className="flex flex-row gap-2 items-center">
-              <Image src="/star.svg" width={22} height={22} alt="star" />
-              <p>{feedback?.totalScore || "---"}/100</p>
-            </div>
-          </div>
-
-          {/* Feedback or Placeholder Text */}
-          <p className="line-clamp-2 mt-5">
-            {feedback?.finalAssessment ||
-              "You haven't taken this interview yet. Take it now to improve your skills."}
-          </p>
-        </div>
-
-        <div className="flex flex-row justify-between">
-          <DisplayTechIcons techStack={techstack} />
-
-          <Button className="btn-primary">
-            <Link
-              href={
-                feedback
-                  ? `/interview/${interviewId}/feedback`
-                  : `/interview/${interviewId}`
-              }
-            >
-              {feedback ? "Check Feedback" : "View Interview"}
-            </Link>
-          </Button>
-        </div>
+            {feedback ? "Check Feedback" : "View Interview"}
+          </Link>
+        </Button>
       </div>
     </div>
   );
