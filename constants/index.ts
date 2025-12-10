@@ -111,48 +111,22 @@ export const interviewer: AgentConfig = {
 
 export const feedbackSchema = z.object({
   totalScore: z.number(),
-  categoryScores: z.tuple([
+  categoryScores: z.array(
     z.object({
-      name: z.literal("Communication Skills"),
+      name: z.enum([
+        "Communication Skills",
+        "Analytical Ability",
+        "Motivation & Fit",
+        "Leadership & Teamwork",
+        "Current Affairs & Business Awareness",
+        "Domain Knowledge",
+        "Ethics & Maturity",
+        "Professionalism"
+      ]),
       score: z.number(),
       comment: z.string(),
-    }),
-    z.object({
-      name: z.literal("Analytical Ability"),
-      score: z.number(),
-      comment: z.string(),
-    }),
-    z.object({
-      name: z.literal("Motivation & Fit"),
-      score: z.number(),
-      comment: z.string(),
-    }),
-    z.object({
-      name: z.literal("Leadership & Teamwork"),
-      score: z.number(),
-      comment: z.string(),
-    }),
-    z.object({
-      name: z.literal("Current Affairs & Business Awareness"),
-      score: z.number(),
-      comment: z.string(),
-    }),
-    z.object({
-      name: z.literal("Domain Knowledge"),
-      score: z.number(),
-      comment: z.string(),
-    }),
-    z.object({
-      name: z.literal("Ethics & Maturity"),
-      score: z.number(),
-      comment: z.string(),
-    }),
-    z.object({
-      name: z.literal("Professionalism"),
-      score: z.number(),
-      comment: z.string(),
-    }),
-  ]),
+    })
+  ),
   strengths: z.array(z.string()),
   areasForImprovement: z.array(z.string()),
   finalAssessment: z.string(),

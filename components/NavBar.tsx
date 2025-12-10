@@ -25,9 +25,9 @@ interface NavBarProps {
 
 // Define your key navigation items
 const NAV_LINKS = [
-  { name: "Features", href: "/features" },
-  { name: "Pricing", href: "/pricing" },
-  { name: "About", href: "/about" },
+  { name: "Features", href: "/" },
+  { name: "Pricing", href: "/" },
+  { name: "About", href: "/" },
 ];
 
 // Client component wrapper for Log Out functionality
@@ -86,7 +86,7 @@ const NavBar = ({ isAuthenticated, user }: NavBarProps) => {
             // AUTHENTICATED STATE: Avatar + Profile Link + Log Out
             <>
               <Link 
-                href="/profile" 
+                href="/" 
                 className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
               >
                 {/* User Avatar */}

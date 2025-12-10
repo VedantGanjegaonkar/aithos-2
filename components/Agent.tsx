@@ -3,14 +3,10 @@
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-
-// CORRECTED IMPORT: Using RetellWebClient (capital 'C')
 import { RetellWebClient } from "retell-client-js-sdk"; 
-
 import { cn } from "@/lib/utils";
 import { createFeedback } from "@/lib/actions/general.action";
 
-// Assuming AgentProps is updated in types/index.d.ts to include accessToken
 interface SavedMessage {
   role: "user" | "system" | "assistant";
   content: string;
@@ -30,10 +26,9 @@ interface AgentProps {
     feedbackId?: string;
     type: "generate" | "interview";
     questions?: string[];
-    // REQUIRED: The access token from the backend Retell call
-    accessToken: string; 
+    accessToken: string;
+    callId: string; 
 }
-
 
 const Agent = ({
   userName,
@@ -42,35 +37,30 @@ const Agent = ({
   feedbackId,
   type,
   questions,
-  accessToken, // Destructure the required prop
+  accessToken, 
+  callId, 
 }: AgentProps) => {
-  console.log("Agent Prop Check: Access Token is", accessToken ? "PRESENT" : "MISSING", accessToken);
   const router = useRouter();
   const [callStatus, setCallStatus] = useState<CallStatus>(CallStatus.INACTIVE);
   const [messages, setMessages] = useState<SavedMessage[]>([]);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [lastMessage, setLastMessage] = useState<string>("");
+  const [isGenerating, setIsGenerating] = useState(false); // New state for loading UI
   
-  // Use useRef to hold the Retell client instance
   const retellClientRef = useRef<RetellWebClient | null>(null);
 
-
-  // --- Step 1: Initialize Retell Client and Set up Listeners ---
   useEffect(() => {
-    // Only initialize if the client is not yet set
     if (!retellClientRef.current) {
-      
-      // CORRECTED INSTANTIATION: RetellWebClient is instantiated without arguments
       retellClientRef.current = new RetellWebClient(); 
 
-      // Retell Event Handlers
       const onConnect = () => {
         console.log("Retell Call Started");
         setCallStatus(CallStatus.ACTIVE);
       };
 
-      const onStop = () => {
-        console.log("Retell Call Ended");
+      // FIX 1: Handler for call ending
+      const onCallEnded = () => {
+        console.log("Retell Call Ended (Event Triggered)");
         setCallStatus(CallStatus.FINISHED);
       };
 
@@ -79,7 +69,6 @@ const Agent = ({
         setCallStatus(CallStatus.FINISHED);
       };
 
-      // Handle final transcript messages from Retell
       const onMessage = (message: any) => { 
         if (message.event === "message" && message.message) {
             const { role, content } = message.message;
@@ -90,133 +79,143 @@ const Agent = ({
         }
       };
       
-      // Handle audio state (speaking indicator)
       const onAudio = (event: any) => {
           if (event.event === "audio" && event.audio) {
             setIsSpeaking(event.audio.role === "agent");
           }
       }
 
-      // Wire up the event listeners
       const client = retellClientRef.current;
       client.on("connect", onConnect);
-      client.on("stop", onStop);
+      // FIX 2: Listen to both potential event names
+      client.on("stop", onCallEnded);
+      client.on("call_ended", onCallEnded);
+      
       client.on("error", onError);
       client.on("message", onMessage);
       client.on("audio", onAudio);
     }
     
-    // Cleanup function: remove listeners and stop the call if component unmounts
     return () => {
         if (retellClientRef.current) {
             const client = retellClientRef.current;
             client.off("connect");
             client.off("stop");
+            client.off("call_ended");
             client.off("error");
             client.off("message");
             client.off("audio");
-
-            // Stop the call if it's currently running when unmounting
             if (callStatus === CallStatus.ACTIVE || callStatus === CallStatus.CONNECTING) {
                  client.stopCall();
             }
         }
     };
-  }, [callStatus]); // Removed accessToken dependency here as it's passed to .start()
+  }, [callStatus]);
 
+  // Poll server-side Retell status as a fallback in case SDK events are missed
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null;
+    const pollInterval = 3000;
 
-  // --- Step 2: Handle Feedback Generation on Call End ---
+    async function checkCallStatus() {
+      try {
+        const res = await fetch(`/api/retell/status?callId=${encodeURIComponent(callId)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.call_status === 'ended' && callStatus !== CallStatus.FINISHED) {
+          console.log('[CLIENT] Detected call ended via server poll');
+          setCallStatus(CallStatus.FINISHED);
+        }
+      } catch (err) {
+        console.warn('[CLIENT] Poll error', err);
+      }
+    }
+
+    if (callStatus === CallStatus.ACTIVE) {
+      // start polling
+      interval = setInterval(checkCallStatus, pollInterval);
+      // do an immediate check
+      checkCallStatus();
+    }
+
+    return () => {
+      if (interval) clearInterval(interval as any);
+    };
+  }, [callStatus, callId]);
+
   useEffect(() => {
     if (messages.length > 0) {
       setLastMessage(messages[messages.length - 1].content);
     }
+  }, [messages]);
 
-    const handleGenerateFeedback = async (messages: SavedMessage[]) => {
-      console.log("handleGenerateFeedback");
+  // Consolidated Feedback Generation Function
+  const generateFeedback = async () => {
+    if (isGenerating) return; // Prevent double submission
+    setIsGenerating(true);
+    
+    console.log("[CLIENT] Requesting server to fetch transcript and generate feedback...");
 
-      const { success, feedbackId: id } = await createFeedback({
-        interviewId: interviewId!,
-        userId: userId!,
-        transcript: messages,
-        feedbackId,
-      });
+    const { success, feedbackId: id } = await createFeedback({
+      interviewId: interviewId!,
+      userId: userId!,
+      callId: callId, 
+      feedbackId,
+    });
 
-      if (success && id) {
-        router.push(`/interview/${interviewId}/feedback`);
-      } else {
-        console.log("Error saving feedback");
-        router.push("/");
-      }
-    };
+    console.log(`[CLIENT] Server Action returned: Success=${success}, ID=${id}`);
 
-    if (callStatus === CallStatus.FINISHED) {
-      // The call ended, now process the feedback
-      handleGenerateFeedback(messages);
+    if (success && id) {
+      router.push(`/interview/${interviewId}/feedback`);
+    } else {
+      console.error("[CLIENT] Error saving feedback. Redirecting to home."); 
+      router.push("/");
     }
-  }, [messages, callStatus, feedbackId, interviewId, router, type, userId]);
+  };
 
-  // --- Step 3: Handle Button Actions (Start the Call) ---
-  
+  // Auto-trigger when status changes to FINISHED
+  useEffect(() => {
+    if (callStatus === CallStatus.FINISHED) {
+      generateFeedback();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [callStatus]); 
+
   const handleCall = () => {
     if (retellClientRef.current && callStatus === CallStatus.INACTIVE) {
         setCallStatus(CallStatus.CONNECTING);
-        
-        // CORRECTION: accessToken is passed to the startCall method
         retellClientRef.current.startCall({ accessToken: accessToken });
     }
   };
 
   const handleDisconnect = () => {
-    // Use the Retell client instance to stop the call
     if (retellClientRef.current) {
         retellClientRef.current.stopCall();
     }
-    // The callStatus will be set to FINISHED via the 'onStop' event listener
   };
 
   return (
     <>
       <div className="call-view">
-        {/* AI Interviewer Card */}
         <div className="card-interviewer">
           <div className="avatar">
-            <Image
-              src="/ai-avatar.png"
-              alt="profile-image"
-              width={65}
-              height={54}
-              className="object-cover"
-            />
+            <Image src="/ai-avatar.png" alt="profile" width={65} height={54} className="object-cover" />
             {isSpeaking && <span className="animate-speak" />}
           </div>
           <h3>AI Interviewer</h3>
         </div>
-
-        {/* User Profile Card */}
         <div className="card-border">
           <div className="card-content">
-            <Image
-              src="/user-avatar.png"
-              alt="profile-image"
-              width={539}
-              height={539}
-              className="rounded-full object-cover size-[120px]"
-            />
+            <Image src="/user-avatar.png" alt="profile" width={539} height={539} className="rounded-full object-cover size-[120px]" />
             <h3>{userName}</h3>
           </div>
         </div>
       </div>
-
+      
       {messages.length > 0 && (
         <div className="transcript-border">
           <div className="transcript">
-            <p
-              key={lastMessage}
-              className={cn(
-                "transition-opacity duration-500 opacity-0",
-                "animate-fadeIn opacity-100"
-              )}
-            >
+            <p key={lastMessage} className={cn("transition-opacity duration-500 opacity-0", "animate-fadeIn opacity-100")}>
               {lastMessage}
             </p>
           </div>
@@ -224,28 +223,28 @@ const Agent = ({
       )}
 
       <div className="w-full flex justify-center">
-        {callStatus !== CallStatus.ACTIVE ? (
-          <button className="relative btn-call" onClick={() => handleCall()}
-             // Disable button if actively connecting or finished
-             disabled={callStatus === CallStatus.CONNECTING || callStatus === CallStatus.FINISHED || !accessToken}
-          >
-            <span
-              className={cn(
-                "absolute animate-ping rounded-full opacity-75",
-                callStatus !== CallStatus.CONNECTING && "hidden"
-              )}
-            />
+        {callStatus === CallStatus.INACTIVE && (
+           <button className="relative btn-call" onClick={handleCall} disabled={!accessToken}>
+             <span className="relative">Call</span>
+           </button>
+        )}
 
-            <span className="relative">
-              {callStatus === CallStatus.INACTIVE || callStatus === CallStatus.FINISHED
-                ? "Call"
-                : ". . ."}
-            </span>
-          </button>
-        ) : (
-          <button className="btn-disconnect" onClick={() => handleDisconnect()}>
-            End
-          </button>
+        {callStatus === CallStatus.CONNECTING && (
+           <button className="relative btn-call" disabled>
+             <span className="absolute animate-ping rounded-full opacity-75" />
+             <span className="relative">...</span>
+           </button>
+        )}
+
+        {callStatus === CallStatus.ACTIVE && (
+           <button className="btn-disconnect" onClick={handleDisconnect}>End</button>
+        )}
+
+        {/* FIX 3: Explicit Loading/Retry State */}
+        {callStatus === CallStatus.FINISHED && (
+           <button className="relative btn-call" disabled={isGenerating} onClick={generateFeedback}>
+             {isGenerating ? "Analyzing..." : "Generate Feedback"}
+           </button>
         )}
       </div>
     </>

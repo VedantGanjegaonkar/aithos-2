@@ -97,7 +97,9 @@ export async function POST(request: Request) {
       coverImage: getInstitutionImageUrl(targetSchool), 
       createdAt: new Date().toISOString(),
       // FIX: SAVED THE ACCESS TOKEN HERE
-      accessToken: retellCall.access_token, 
+      accessToken: retellCall.access_token,
+      callId: retellCall.call_id,
+       
     };
 
     const interviewRef = await db.collection("interviews").add(interview);
