@@ -1,29 +1,20 @@
-import Link from "next/link";
-import Image from "next/image";
+// ved-pandya/test_aithos/test_aithos-7f98104aa6f9ba6e2d00a371a5d6ac4e96919a19/app/(root)/layout.tsx
+
 import { ReactNode } from "react";
-import { redirect } from "next/navigation";
-
-import NavBar from "@/components/NavBar"; // <-- IMPORT YOUR FULL NAVBAR HERE
-
-import { isAuthenticated } from "@/lib/actions/auth.action";
+import NavBar from "@/components/NavBar";
+import { getCurrentUser } from "@/lib/actions/auth.action";
 
 const Layout = async ({ children }: { children: ReactNode }) => {
-  // 1. Authentication Check (Keep this logic)
-  const isUserAuthenticated = await isAuthenticated();
-  if (!isUserAuthenticated) redirect("/sign-in");
+  // Fetches user, but does NOT redirect if null (public homepage)
+  const user = await getCurrentUser();
+  const isAuthenticated = !!user;
 
   return (
-    // Outer Wrapper: Use the site-dark-gradient class here (or ensure it's on the <body> tag)
-    // We'll assume the body handles the full site gradient and min-h-screen
     <>
-      {/* 2. NAVIGATION BAR: Fixed at the top (as defined within NavBar.jsx) */}
-      <NavBar />
+      {/* Pass the isAuthenticated status and the user object */}
+      <NavBar isAuthenticated={isAuthenticated} user={user} />
 
-      {/* 3. MAIN CONTENT WRAPPER */}
-      {/* - The 'root-layout' class is kept for max-width/centering (as seen in your globals.css).
-         - The 'pt-20' class is CRUCIAL: It adds top padding equal to the NavBar's height 
-           to ensure the main content (your pages) is not hidden underneath the fixed navbar. 
-      */}
+      {/* pt-20 is essential for content clearance below the fixed Navbar */}
       <div className="root-layout pt-20">
         {children}
       </div>
