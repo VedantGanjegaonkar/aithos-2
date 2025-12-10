@@ -23,6 +23,8 @@ interface Interview {
   userId: string;
   type: string;
   finalized: boolean;
+  // FIX: Marked as optional to allow old database records to load without errors
+  accessToken?: string; 
 }
 
 interface CreateFeedbackParams {
@@ -54,6 +56,8 @@ interface AgentProps {
   feedbackId?: string;
   type: "generate" | "interview";
   questions?: string[];
+  // REQUIRED: Agent component cannot connect without this value
+  accessToken: string; 
 }
 
 interface RouteParams {

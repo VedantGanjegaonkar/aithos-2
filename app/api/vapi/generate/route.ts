@@ -3,7 +3,8 @@ import { google } from "@ai-sdk/google";
 import Retell from "retell-sdk";
 
 import { db } from "@/firebase/admin";
-import { getRandomInterviewCover } from "@/lib/utils";
+// FIX: Corrected import to the exported utility function
+import { getInstitutionImageUrl } from "@/lib/utils"; 
 
 // Initialize Retell Client
 const retell = new Retell({
@@ -27,10 +28,10 @@ export async function POST(request: Request) {
   try {
     // -----------------------------------------------------------
     // 1. GENERATE QUESTIONS (GEMINI)
-    // We keep this to save a record of "planned" questions to the DB
     // -----------------------------------------------------------
     const { text: questions } = await generateText({
-      model: google("gemini-2.0-flash-001"),
+      // FIX: Using a common, stable model
+      model: google("gemini-2.5-flash"), 
       prompt: `
       Prepare questions for an MBA/PGDM admissions interview for top Indian business schools 
         such as the IIMs, XLRI, FMS, ISB, MDI and similar institutes.
@@ -75,6 +76,13 @@ export async function POST(request: Request) {
     const parsedQuestions = JSON.parse(questions);
 
     // -----------------------------------------------------------
+    // 3. RETELL AI ROUTING
+    // -----------------------------------------------------------
+    const retellCall = await retell.call.createWebCall({
+      agent_id: process.env.RETELL_AGENT_ID!,
+    });
+    
+    // -----------------------------------------------------------
     // 2. SAVE TO FIREBASE
     // -----------------------------------------------------------
     const interview = {
@@ -85,20 +93,14 @@ export async function POST(request: Request) {
       questions: parsedQuestions,
       userId: userid,
       finalized: true,
-      coverImage: getRandomInterviewCover(),
+      coverImage: getInstitutionImageUrl(targetSchool), 
       createdAt: new Date().toISOString(),
+      // CRITICAL FIX: SAVED THE ACCESS TOKEN TO FIREBASE
+      accessToken: retellCall.access_token, 
     };
 
     const interviewRef = await db.collection("interviews").add(interview);
 
-    // -----------------------------------------------------------
-    // 3. RETELL AI ROUTING
-    // -----------------------------------------------------------
-    // Create the Web Call using the Agent ID from your .env file.
-    // We are NOT passing the generated questions to the agent, per your request.
-    const retellCall = await retell.call.createWebCall({
-      agent_id: process.env.RETELL_AGENT_ID!,
-    });
 
     // Return the access token so the frontend can start the audio
     return Response.json({ 
