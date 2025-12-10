@@ -54,6 +54,8 @@ const InterviewDetails = async ({ params }: RouteParams) => {
         type="interview"
         questions={interview.questions}
         feedbackId={feedback?.id}
+        // FIX: Passing the accessToken to the Agent component
+        accessToken={interview.accessToken} 
       />
     </>
   );

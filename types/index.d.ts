@@ -23,6 +23,8 @@ interface Interview {
   userId: string;
   type: string;
   finalized: boolean;
+  // FIX: Added accessToken to Interview type
+  accessToken: string; 
 }
 
 interface CreateFeedbackParams {
@@ -54,6 +56,8 @@ interface AgentProps {
   feedbackId?: string;
   type: "generate" | "interview";
   questions?: string[];
+  // FIX: Added accessToken to AgentProps
+  accessToken: string;
 }
 
 interface RouteParams {

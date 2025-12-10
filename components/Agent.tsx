@@ -1,13 +1,20 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
+// CORRECTED IMPORT: Using RetellWebClient (capital 'C')
+import { RetellWebClient } from "retell-client-js-sdk"; 
+
 import { cn } from "@/lib/utils";
-import { vapi } from "@/lib/vapi.sdk";
-import { interviewer } from "@/constants";
 import { createFeedback } from "@/lib/actions/general.action";
+
+// Assuming AgentProps is updated in types/index.d.ts to include accessToken
+interface SavedMessage {
+  role: "user" | "system" | "assistant";
+  content: string;
+}
 
 enum CallStatus {
   INACTIVE = "INACTIVE",
@@ -16,10 +23,17 @@ enum CallStatus {
   FINISHED = "FINISHED",
 }
 
-interface SavedMessage {
-  role: "user" | "system" | "assistant";
-  content: string;
+interface AgentProps {
+    userName: string;
+    userId?: string;
+    interviewId?: string;
+    feedbackId?: string;
+    type: "generate" | "interview";
+    questions?: string[];
+    // REQUIRED: The access token from the backend Retell call
+    accessToken: string; 
 }
+
 
 const Agent = ({
   userName,
@@ -28,60 +42,90 @@ const Agent = ({
   feedbackId,
   type,
   questions,
+  accessToken, // Destructure the required prop
 }: AgentProps) => {
+  console.log("Agent Prop Check: Access Token is", accessToken ? "PRESENT" : "MISSING", accessToken);
   const router = useRouter();
   const [callStatus, setCallStatus] = useState<CallStatus>(CallStatus.INACTIVE);
   const [messages, setMessages] = useState<SavedMessage[]>([]);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [lastMessage, setLastMessage] = useState<string>("");
+  
+  // Use useRef to hold the Retell client instance
+  const retellClientRef = useRef<RetellWebClient | null>(null);
 
+
+  // --- Step 1: Initialize Retell Client and Set up Listeners ---
   useEffect(() => {
-    const onCallStart = () => {
-      setCallStatus(CallStatus.ACTIVE);
-    };
+    // Only initialize if the client is not yet set
+    if (!retellClientRef.current) {
+      
+      // CORRECTED INSTANTIATION: RetellWebClient is instantiated without arguments
+      retellClientRef.current = new RetellWebClient(); 
 
-    const onCallEnd = () => {
-      setCallStatus(CallStatus.FINISHED);
-    };
+      // Retell Event Handlers
+      const onConnect = () => {
+        console.log("Retell Call Started");
+        setCallStatus(CallStatus.ACTIVE);
+      };
 
-    const onMessage = (message: Message) => {
-      if (message.type === "transcript" && message.transcriptType === "final") {
-        const newMessage = { role: message.role, content: message.transcript };
-        setMessages((prev) => [...prev, newMessage]);
+      const onStop = () => {
+        console.log("Retell Call Ended");
+        setCallStatus(CallStatus.FINISHED);
+      };
+
+      const onError = (error: Error) => {
+        console.log("Retell Error:", error);
+        setCallStatus(CallStatus.FINISHED);
+      };
+
+      // Handle final transcript messages from Retell
+      const onMessage = (message: any) => { 
+        if (message.event === "message" && message.message) {
+            const { role, content } = message.message;
+            if (role === 'agent' || role === 'user') {
+                const newMessage: SavedMessage = { role: role === "agent" ? "assistant" : "user", content: content };
+                setMessages((prev) => [...prev, newMessage]);
+            }
+        }
+      };
+      
+      // Handle audio state (speaking indicator)
+      const onAudio = (event: any) => {
+          if (event.event === "audio" && event.audio) {
+            setIsSpeaking(event.audio.role === "agent");
+          }
       }
-    };
 
-    const onSpeechStart = () => {
-      console.log("speech start");
-      setIsSpeaking(true);
-    };
-
-    const onSpeechEnd = () => {
-      console.log("speech end");
-      setIsSpeaking(false);
-    };
-
-    const onError = (error: Error) => {
-      console.log("Error:", error);
-    };
-
-    vapi.on("call-start", onCallStart);
-    vapi.on("call-end", onCallEnd);
-    vapi.on("message", onMessage);
-    vapi.on("speech-start", onSpeechStart);
-    vapi.on("speech-end", onSpeechEnd);
-    vapi.on("error", onError);
-
+      // Wire up the event listeners
+      const client = retellClientRef.current;
+      client.on("connect", onConnect);
+      client.on("stop", onStop);
+      client.on("error", onError);
+      client.on("message", onMessage);
+      client.on("audio", onAudio);
+    }
+    
+    // Cleanup function: remove listeners and stop the call if component unmounts
     return () => {
-      vapi.off("call-start", onCallStart);
-      vapi.off("call-end", onCallEnd);
-      vapi.off("message", onMessage);
-      vapi.off("speech-start", onSpeechStart);
-      vapi.off("speech-end", onSpeechEnd);
-      vapi.off("error", onError);
-    };
-  }, []);
+        if (retellClientRef.current) {
+            const client = retellClientRef.current;
+            client.off("connect");
+            client.off("stop");
+            client.off("error");
+            client.off("message");
+            client.off("audio");
 
+            // Stop the call if it's currently running when unmounting
+            if (callStatus === CallStatus.ACTIVE || callStatus === CallStatus.CONNECTING) {
+                 client.stopCall();
+            }
+        }
+    };
+  }, [callStatus]); // Removed accessToken dependency here as it's passed to .start()
+
+
+  // --- Step 2: Handle Feedback Generation on Call End ---
   useEffect(() => {
     if (messages.length > 0) {
       setLastMessage(messages[messages.length - 1].content);
@@ -106,43 +150,28 @@ const Agent = ({
     };
 
     if (callStatus === CallStatus.FINISHED) {
-      if (type === "generate") {
-        router.push("/");
-      } else {
-        handleGenerateFeedback(messages);
-      }
+      // The call ended, now process the feedback
+      handleGenerateFeedback(messages);
     }
   }, [messages, callStatus, feedbackId, interviewId, router, type, userId]);
 
-  const handleCall = async () => {
-    setCallStatus(CallStatus.CONNECTING);
-
-    if (type === "generate") {
-      await vapi.start(process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID!, {
-        variableValues: {
-          username: userName,
-          userid: userId,
-        },
-      });
-    } else {
-      let formattedQuestions = "";
-      if (questions) {
-        formattedQuestions = questions
-          .map((question) => `- ${question}`)
-          .join("\n");
-      }
-
-      await vapi.start(interviewer, {
-        variableValues: {
-          questions: formattedQuestions,
-        },
-      });
+  // --- Step 3: Handle Button Actions (Start the Call) ---
+  
+  const handleCall = () => {
+    if (retellClientRef.current && callStatus === CallStatus.INACTIVE) {
+        setCallStatus(CallStatus.CONNECTING);
+        
+        // CORRECTION: accessToken is passed to the startCall method
+        retellClientRef.current.startCall({ accessToken: accessToken });
     }
   };
 
   const handleDisconnect = () => {
-    setCallStatus(CallStatus.FINISHED);
-    vapi.stop();
+    // Use the Retell client instance to stop the call
+    if (retellClientRef.current) {
+        retellClientRef.current.stopCall();
+    }
+    // The callStatus will be set to FINISHED via the 'onStop' event listener
   };
 
   return (
@@ -195,17 +224,20 @@ const Agent = ({
       )}
 
       <div className="w-full flex justify-center">
-        {callStatus !== "ACTIVE" ? (
-          <button className="relative btn-call" onClick={() => handleCall()}>
+        {callStatus !== CallStatus.ACTIVE ? (
+          <button className="relative btn-call" onClick={() => handleCall()}
+             // Disable button if actively connecting or finished
+             disabled={callStatus === CallStatus.CONNECTING || callStatus === CallStatus.FINISHED || !accessToken}
+          >
             <span
               className={cn(
                 "absolute animate-ping rounded-full opacity-75",
-                callStatus !== "CONNECTING" && "hidden"
+                callStatus !== CallStatus.CONNECTING && "hidden"
               )}
             />
 
             <span className="relative">
-              {callStatus === "INACTIVE" || callStatus === "FINISHED"
+              {callStatus === CallStatus.INACTIVE || callStatus === CallStatus.FINISHED
                 ? "Call"
                 : ". . ."}
             </span>
