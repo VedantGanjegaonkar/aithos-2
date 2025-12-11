@@ -210,8 +210,21 @@ export async function getFeedbackByInterviewId(
 
 export async function getLatestInterviews(params: GetLatestInterviewsParams): Promise<Interview[] | null> {
   const { userId, limit = 20 } = params;
-  const interviews = await db.collection("interviews").orderBy("createdAt", "desc").where("finalized", "==", true).where("userId", "!=", userId).limit(limit).get();
-  return interviews.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Interview[];
+  // Firestore requires a composite index for combining `where` on one field with `orderBy` on another.
+  // To avoid that during development, fetch recent interviews ordered by `createdAt` and
+  // filter `finalized` and `userId` in memory. This avoids the index requirement.
+  const snapshot = await db
+    .collection("interviews")
+    .orderBy("createdAt", "desc")
+    .limit(limit * 4)
+    .get();
+
+  const results = snapshot.docs
+    .map((doc) => ({ id: doc.id, ...doc.data() }))
+    .filter((iv: any) => iv.finalized === true && iv.userId !== userId)
+    .slice(0, limit) as Interview[];
+
+  return results;
 }
 
 export async function getInterviewsByUserId(userId: string): Promise<Interview[] | null> {

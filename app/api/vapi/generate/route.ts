@@ -107,17 +107,17 @@ export async function POST(request: Request) {
 
     // Return the access token so the frontend can start the audio
     return Response.json({ 
-        success: true, 
-        interviewId: interviewRef.id,
-        accessToken: retellCall.access_token 
-    }, { status: 200 });
+      success: true, 
+      interviewId: interviewRef.id,
+      accessToken: retellCall.access_token 
+    }, { status: 200, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0' } });
 
   } catch (error) {
     console.error("Error:", error);
-    return Response.json({ success: false, error: error }, { status: 500 });
+    return Response.json({ success: false, error: error }, { status: 500, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0' } });
   }
 }
 
 export async function GET() {
-  return Response.json({ success: true, data: "Retell Agent Ready" }, { status: 200 });
+  return Response.json({ success: true, data: "Retell Agent Ready" }, { status: 200, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0' } });
 }

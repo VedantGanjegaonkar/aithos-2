@@ -12,6 +12,7 @@ import {
   getInterviewsByUserId,
   getLatestInterviews,
 } from "@/lib/actions/general.action";
+import { getFeedbackByInterviewId } from "@/lib/actions/general.action";
 
 async function Home() {
   const user = await getCurrentUser();
@@ -25,8 +26,28 @@ async function Home() {
     getLatestInterviews({ userId }), 
   ]);
 
-  const hasPastInterviews = userInterviews?.length > 0;
-  const hasUpcomingInterviews = allInterview?.length > 0;
+  const now = new Date();
+
+  // Classify interviews by whether feedback/transcript exists.
+  // If no feedback exists for an `interview`, treat it as upcoming (transcript not processed yet).
+  const feedbackChecks = await Promise.all(
+    (userInterviews || []).map(async (iv) => {
+      try {
+        const fb = await getFeedbackByInterviewId({ interviewId: iv.id, userId });
+        return { id: iv.id, hasFeedback: !!fb };
+      } catch (e) {
+        return { id: iv.id, hasFeedback: false };
+      }
+    })
+  );
+
+  const feedbackMap = new Map(feedbackChecks.map((f) => [f.id, f.hasFeedback]));
+
+  const upcomingInterviews = (userInterviews || []).filter((iv) => !feedbackMap.get(iv.id));
+  const pastInterviews = (userInterviews || []).filter((iv) => feedbackMap.get(iv.id));
+
+  const hasPastInterviews = pastInterviews.length > 0;
+  const hasUpcomingInterviews = upcomingInterviews.length > 0;
 
   return (
     <>
@@ -53,8 +74,37 @@ async function Home() {
       </section>
 
       {/* ------------------------------------------------------------- */}
-      {/* ⏳ 2. YOUR PAST INTERVIEWS SECTION (CONDITIONAL: Only if user is logged in) */}
-      {userId && ( // <-- Only show this section if userId exists
+      {/* ⏳ 2. UPCOMING INTERVIEWS (for this user) */}
+      {userId && (
+        <section className="flex flex-col gap-6 mt-12">
+          <div className="flex flex-col">
+            <h2 className="text-3xl font-bold text-primary-200">Upcoming Interviews</h2>
+            <div className="w-12 h-1 bg-primary-200 rounded-full mt-2 mb-4" /> 
+          </div>
+
+          <div className="interviews-section">
+            {hasUpcomingInterviews ? (
+              upcomingInterviews.map((interview) => (
+                <InterviewCard
+                  key={interview.id}
+                  userId={userId}
+                  interviewId={interview.id}
+                  role={interview.role}
+                  type={interview.type}
+                  techstack={interview.techstack}
+                  createdAt={interview.createdAt}
+                />
+              ))
+            ) : (
+              <p className="text-gray-400">You have no upcoming interviews scheduled.</p>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* ⏳ 3. YOUR PAST INTERVIEWS SECTION (CONDITIONAL: Only if user is logged in) */}
+      {userId && (
         <section className="flex flex-col gap-6 mt-12">
           <div className="flex flex-col">
             <h2 className="text-3xl font-bold text-primary-200">Your Past Interviews</h2>
@@ -63,7 +113,7 @@ async function Home() {
 
           <div className="interviews-section">
             {hasPastInterviews ? (
-              userInterviews?.map((interview) => (
+              pastInterviews.map((interview) => (
                 <InterviewCard
                   key={interview.id}
                   userId={userId}

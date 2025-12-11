@@ -183,8 +183,24 @@ const Agent = ({
 
   const handleCall = () => {
     if (retellClientRef.current && callStatus === CallStatus.INACTIVE) {
+        // Defensive: log the access token and attempt to start the call with error handling
+        console.log('[CLIENT] Starting call with accessToken:', accessToken?.slice ? accessToken.slice(0, 20) + '...' : accessToken);
         setCallStatus(CallStatus.CONNECTING);
-        retellClientRef.current.startCall({ accessToken: accessToken });
+        try {
+          const startResult = retellClientRef.current.startCall({ accessToken: accessToken });
+          // startCall may be sync or return a promise; handle both
+          if (startResult && typeof (startResult as any).then === 'function') {
+            (startResult as Promise<any>)
+              .then((res) => console.log('[CLIENT] startCall resolved', res))
+              .catch((err) => {
+                console.error('[CLIENT] startCall error (async):', err);
+                setCallStatus(CallStatus.INACTIVE);
+              });
+          }
+        } catch (err) {
+          console.error('[CLIENT] startCall exception:', err);
+          setCallStatus(CallStatus.INACTIVE);
+        }
     }
   };
 
@@ -194,8 +210,42 @@ const Agent = ({
     }
   };
 
+  // End call and trigger server-side feedback generation (redirect handled by generateFeedback)
+  const endCallAndGenerate = async () => {
+    // Confirmation before ending
+    if (typeof window !== "undefined") {
+      const ok = window.confirm("Are you sure you want to end the call and generate feedback?");
+      if (!ok) return;
+    }
+
+    if (retellClientRef.current) {
+      try {
+        retellClientRef.current.stopCall();
+      } catch (err) {
+        console.warn("Error stopping call:", err);
+      }
+    }
+
+    // mark call as finished locally and trigger feedback creation
+    setCallStatus(CallStatus.FINISHED);
+    // generateFeedback flips `isGenerating` which will show the buffer overlay
+    await generateFeedback();
+  };
+
   return (
     <>
+      {isGenerating && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-white/95 dark:bg-gray-900/95 rounded-lg p-8 flex flex-col items-center gap-4 max-w-sm mx-4">
+            <svg className="w-12 h-12 text-primary-300 animate-spin" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Please wait — feedback is being generated</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300">This may take a few seconds. You will be redirected when ready.</p>
+          </div>
+        </div>
+      )}
       <div className="call-view">
         <div className="card-interviewer">
           <div className="avatar">
@@ -229,16 +279,13 @@ const Agent = ({
            </button>
         )}
 
-        {callStatus === CallStatus.CONNECTING && (
-           <button className="relative btn-call" disabled>
-             <span className="absolute animate-ping rounded-full opacity-75" />
-             <span className="relative">...</span>
-           </button>
-        )}
+          {callStatus === CallStatus.CONNECTING && (
+            <button className="btn-disconnect" onClick={endCallAndGenerate}>End</button>
+          )}
 
-        {callStatus === CallStatus.ACTIVE && (
-           <button className="btn-disconnect" onClick={handleDisconnect}>End</button>
-        )}
+          {callStatus === CallStatus.ACTIVE && (
+            <button className="btn-disconnect" onClick={endCallAndGenerate}>End</button>
+          )}
 
         {/* FIX 3: Explicit Loading/Retry State */}
         {callStatus === CallStatus.FINISHED && (
