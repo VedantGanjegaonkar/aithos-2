@@ -41,7 +41,23 @@ export const getTechLogos = async (techArray: string[]) => {
   return results;
 };
 
-export const getRandomInterviewCover = () => {
-  const randomIndex = Math.floor(Math.random() * interviewCovers.length);
-  return `/covers${interviewCovers[randomIndex]}`;
+export const getInstitutionImageUrl = (institutionName: string) => {
+  // 1. Define the specific image path for IIM Ahmedabad
+  const IIM_AHMEDABAD_PATH = "/covers/IIM_Ahemdabad.png";
+  const XLRI_J_PATH = "/covers/XLRI_J.jpeg" 
+  
+  // 2. Define a default image path for all other cases
+  const DEFAULT_COVER_PATH = "/covers/default-campus-view.png"; 
+
+
+  if (institutionName === "IIM Ahemdabad") {
+    return IIM_AHMEDABAD_PATH;
+  }
+  else if(institutionName === "XLRI J")
+  {
+    return XLRI_J_PATH;
+  }
+
+  
+  return DEFAULT_COVER_PATH;
 };

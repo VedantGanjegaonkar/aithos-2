@@ -11,6 +11,8 @@ interface Feedback {
   areasForImprovement: string[];
   finalAssessment: string;
   createdAt: string;
+  // Stores the conversation history
+  transcript: { role: string; content: string }[];
 }
 
 interface Interview {
@@ -23,12 +25,16 @@ interface Interview {
   userId: string;
   type: string;
   finalized: boolean;
+  accessToken?: string;
+  // NEW: Call ID for fetching transcripts
+  callId?: string; 
 }
 
 interface CreateFeedbackParams {
   interviewId: string;
   userId: string;
-  transcript: { role: string; content: string }[];
+  // CHANGED: Pass callId instead of raw transcript
+  callId: string; 
   feedbackId?: string;
 }
 
@@ -54,6 +60,9 @@ interface AgentProps {
   feedbackId?: string;
   type: "generate" | "interview";
   questions?: string[];
+  accessToken: string;
+  // NEW: Call ID prop
+  callId: string; 
 }
 
 interface RouteParams {

@@ -1,25 +1,24 @@
-import Link from "next/link";
-import Image from "next/image";
-import { ReactNode } from "react";
-import { redirect } from "next/navigation";
+// ved-pandya/test_aithos/test_aithos-7f98104aa6f9ba6e2d00a371a5d6ac4e96919a19/app/(root)/layout.tsx
 
-import { isAuthenticated } from "@/lib/actions/auth.action";
+import { ReactNode } from "react";
+import NavBar from "@/components/NavBar";
+import { getCurrentUser } from "@/lib/actions/auth.action";
 
 const Layout = async ({ children }: { children: ReactNode }) => {
-  const isUserAuthenticated = await isAuthenticated();
-  if (!isUserAuthenticated) redirect("/sign-in");
+  // Fetches user, but does NOT redirect if null (public homepage)
+  const user = await getCurrentUser();
+  const isAuthenticated = !!user;
 
   return (
-    <div className="root-layout">
-      <nav>
-        <Link href="/" className="flex items-center gap-2">
-          <Image src="/logo.svg" alt="MockMate Logo" width={38} height={32} />
-          <h2 className="text-primary-100">Aithos</h2>
-        </Link>
-      </nav>
+    <>
+      {/* Pass the isAuthenticated status and the user object */}
+      <NavBar isAuthenticated={isAuthenticated} user={user} />
 
-      {children}
-    </div>
+      {/* pt-20 is essential for content clearance below the fixed Navbar */}
+      <div className="root-layout pt-20">
+        {children}
+      </div>
+    </>
   );
 };
 

@@ -1,4 +1,3 @@
-import { CreateAssistantDTO } from "@vapi-ai/web/dist/api";
 import { z } from "zod";
 
 export const mappings = {
@@ -97,110 +96,37 @@ export const mappings = {
   "aws amplify": "amplify",
 };
 
-export const interviewer: CreateAssistantDTO = {
+export interface AgentConfig {
+  name: string;
+  firstMessage: string;
+}
+
+// Retell configuration is handled via the Agent ID in the backend.
+// This object now only stores UI-related data.
+export const interviewer: AgentConfig = {
   name: "Interviewer",
   firstMessage:
     "Hello! Thank you for taking the time to speak with me today. I'm excited to learn more about you and your experience.",
-  transcriber: {
-    provider: "deepgram",
-    model: "nova-2",
-    language: "en",
-  },
-  voice: {
-    provider: "11labs",
-    voiceId: "sarah",
-    stability: 0.4,
-    similarityBoost: 0.8,
-    speed: 0.9,
-    style: 0.5,
-    useSpeakerBoost: true,
-  },
-  model: {
-    provider: "openai",
-    model: "gpt-4",
-    messages: [
-      {
-        role: "system",
-        content: `You are a professional MBA admissions interviewer for top Indian B-schools such as the IIMs, FMS, XLRI, ISB, MDI, and other premier institutes.
-
-Your role is to conduct a real-time voice interview to assess the candidate's suitability for an MBA/PGDM program.
-
-Interview Guidelines:
-Follow the structured question flow:
-{{questions}}
-
-Engage naturally & react appropriately:
-Listen actively to responses and acknowledge them before moving forward.
-Ask short follow-up questions if the response lacks clarity or depth.
-Keep the conversation flowing smoothly while maintaining control.
-Be professional, yet warm and welcoming:
-
-Use official yet friendly language.
-Keep responses concise and to the point (like in a real voice interview).
-Avoid robotic phrasing—sound natural and conversational.
-Answer the candidate’s questions professionally:
-
-If asked about the role, company, or expectations, provide a clear and relevant answer.
-If unsure, redirect the candidate to HR for more details.
-
-Conclude the interview properly:
-Thank the candidate for their time.
-Inform them that the company will reach out soon with feedback.
-End the conversation on a polite and positive note.
-
-
-- Be sure to be professional and polite.
-- Keep all your responses short and simple. Use official language, but be kind and welcoming.
-- This is a voice conversation, so keep your responses short, like in a real conversation. Don't ramble for too long.`,
-      },
-    ],
-  },
 };
 
 export const feedbackSchema = z.object({
   totalScore: z.number(),
-  categoryScores: z.tuple([
+  categoryScores: z.array(
     z.object({
-      name: z.literal("Communication Skills"),
+      name: z.enum([
+        "Communication Skills",
+        "Analytical Ability",
+        "Motivation & Fit",
+        "Leadership & Teamwork",
+        "Current Affairs & Business Awareness",
+        "Domain Knowledge",
+        "Ethics & Maturity",
+        "Professionalism"
+      ]),
       score: z.number(),
       comment: z.string(),
-    }),
-    z.object({
-      name: z.literal("Analytical Ability"),
-      score: z.number(),
-      comment: z.string(),
-    }),
-    z.object({
-      name: z.literal("Motivation & Fit"),
-      score: z.number(),
-      comment: z.string(),
-    }),
-    z.object({
-      name: z.literal("Leadership & Teamwork"),
-      score: z.number(),
-      comment: z.string(),
-    }),
-    z.object({
-      name: z.literal("Current Affairs & Business Awareness"),
-      score: z.number(),
-      comment: z.string(),
-    }),
-    z.object({
-      name: z.literal("Domain Knowledge"),
-      score: z.number(),
-      comment: z.string(),
-    }),
-    z.object({
-      name: z.literal("Ethics & Maturity"),
-      score: z.number(),
-      comment: z.string(),
-    }),
-    z.object({
-      name: z.literal("Professionalism"),
-      score: z.number(),
-      comment: z.string(),
-    }),
-  ]),
+    })
+  ),
   strengths: z.array(z.string()),
   areasForImprovement: z.array(z.string()),
   finalAssessment: z.string(),
@@ -220,6 +146,18 @@ export const interviewCovers = [
   "/tiktok.png",
   "/yahoo.png",
 ];
+
+export interface Interview {
+  id: string;
+  userId: string;
+  role: string;
+  type: string;
+  techstack: string[];
+  level: string;
+  questions: string[];
+  finalized: boolean;
+  createdAt: string;
+}
 
 export const dummyInterviews: Interview[] = [
   {
