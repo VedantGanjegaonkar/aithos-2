@@ -48,6 +48,7 @@ async function Home() {
 
   const hasPastInterviews = pastInterviews.length > 0;
   const hasUpcomingInterviews = upcomingInterviews.length > 0;
+  const hasPracticeInterviews = allInterview?.length > 0;
 
   return (
     <>
@@ -132,32 +133,7 @@ async function Home() {
       )}
 
 
-      {/* ------------------------------------------------------------- */}
-      {/* 📚 3. AVAILABLE INTERVIEWS SECTION (Always visible) */}
-      <section className="flex flex-col gap-6 mt-12">
-        <div className="flex flex-col">
-          <h2 className="text-3xl font-bold text-primary-200">Practice Interviews</h2>
-          <div className="w-12 h-1 bg-primary-200 rounded-full mt-2 mb-4" /> 
-        </div>
-
-        <div className="interviews-section">
-          {hasUpcomingInterviews ? (
-            allInterview?.map((interview) => (
-              <InterviewCard
-                key={interview.id}
-                userId={userId} 
-                interviewId={interview.id}
-                role={interview.role}
-                type={interview.type}
-                techstack={interview.techstack}
-                createdAt={interview.createdAt}
-              />
-            ))
-          ) : (
-            <p className="text-gray-400">There are no featured interviews available right now.</p>
-          )}
-        </div>
-      </section>
+      {/* Practice Interviews section removed per request */}
     </>
   );
 }
