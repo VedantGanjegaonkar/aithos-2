@@ -1,5 +1,7 @@
 import React, { useState } from "react";
+import { useRouter } from "next/navigation"; // 👈 Import this
 
+// --- Types & Constants ---
 type FocusOption =
   | "personal & motivation"
   | "academics"
@@ -8,26 +10,11 @@ type FocusOption =
   | "mixed";
 
 const FOCUS_OPTIONS: { label: string; value: FocusOption }[] = [
-  {
-    label: "Personal & Motivation",
-    value: "personal & motivation",
-  },
-  {
-    label: "Academics",
-    value: "academics",
-  },
-  {
-    label: "Work Experience",
-    value: "work experience",
-  },
-  {
-    label: "Current Affairs & Business Awareness",
-    value: "current affairs & business awareness",
-  },
-  {
-    label: "Mixed (Balanced)",
-    value: "mixed",
-  },
+  { label: "Personal & Motivation", value: "personal & motivation" },
+  { label: "Academics", value: "academics" },
+  { label: "Work Experience", value: "work experience" },
+  { label: "Current Affairs & Business Awareness", value: "current affairs & business awareness" },
+  { label: "Mixed (Balanced)", value: "mixed" },
 ];
 
 const PROFILE_PRESETS = [
@@ -37,13 +24,13 @@ const PROFILE_PRESETS = [
   "NGO volunteering",
 ];
 
-const API_ENDPOINT = "https://aithos-mock.vercel.app/api/vapi/generate"; // <-- change this to match your route.ts path
+const API_ENDPOINT = "/api/vapi/generate";
 
 interface SetupFormProps {
   isOpen: boolean;
   onClose: () => void;
   userId: string;
-  onSuccess?: () => void;
+  onSuccess?: (data: any) => void;
 }
 
 const SetupForm: React.FC<SetupFormProps> = ({
@@ -52,6 +39,9 @@ const SetupForm: React.FC<SetupFormProps> = ({
   userId,
   onSuccess,
 }) => {
+  const router = useRouter(); // 👈 Initialize Router
+
+  // --- Form State ---
   const [targetSchool, setTargetSchool] = useState("");
   const [program, setProgram] = useState("");
   const [focus, setFocus] = useState<FocusOption>("mixed");
@@ -65,6 +55,7 @@ const SetupForm: React.FC<SetupFormProps> = ({
 
   if (!isOpen) return null;
 
+  // --- Helpers ---
   const togglePreset = (preset: string) => {
     setSelectedPresets((prev) =>
       prev.includes(preset)
@@ -75,19 +66,12 @@ const SetupForm: React.FC<SetupFormProps> = ({
 
   const buildProfileHighlights = () => {
     const parts: string[] = [];
-    if (selectedPresets.length > 0) {
-      parts.push(selectedPresets.join(", "));
-    }
-    if (customHighlights.trim()) {
-      parts.push(customHighlights.trim());
-    }
-    // fallback example if nothing entered
-    if (parts.length === 0) {
-      return "engineering background, 2 years consulting, debating society, NGO volunteering";
-    }
-    return parts.join(", ");
+    if (selectedPresets.length > 0) parts.push(selectedPresets.join(", "));
+    if (customHighlights.trim()) parts.push(customHighlights.trim());
+    return parts.length === 0 ? "General profile" : parts.join(", ");
   };
 
+  // --- Submit Handler ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -100,16 +84,23 @@ const SetupForm: React.FC<SetupFormProps> = ({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Pragma": "no-cache",
+          "Expires": "0",
         },
         body: JSON.stringify({
+          userid: userId,
           targetSchool,
           program,
           focus,
           profileHighlights,
-          amount,
-          level: "mid",
-          techstack: "python",
-          userid: userId,
+          amount: parseInt(amount),
+          
+          // Compat fields
+          role: targetSchool,
+          type: program,
+          level: "MBA",
+          techstack: "General",
         }),
       });
 
@@ -118,9 +109,24 @@ const SetupForm: React.FC<SetupFormProps> = ({
         throw new Error(data?.error || "Failed to create interview");
       }
 
-      if (onSuccess) onSuccess();
+      const data = await res.json();
+
+      // 1. Handle Success Callback (Optional)
+      if (onSuccess) onSuccess(data);
+
+      // 2. Redirect to the Interview Page
+      // Assuming your page structure is /interview/[interviewId]
+      if (data.interviewId) {
+          router.push(`/interview/${data.interviewId}`); // 👈 Redirect happens here
+      } else {
+          throw new Error("No Interview ID returned from server");
+      }
+
+      // 3. Close Modal (Cleanup)
       onClose();
+
     } catch (err: any) {
+      console.error(err);
       setError(err.message || "Something went wrong");
     } finally {
       setIsSubmitting(false);
@@ -128,17 +134,17 @@ const SetupForm: React.FC<SetupFormProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-      <div className="w-full max-w-lg rounded-xl bg-black p-6 shadow-xl border border-gray-700">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-xl bg-neutral-900 p-6 shadow-2xl border border-neutral-800">
+        
         {/* Header */}
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">
-            Setup MBA/PGDM Interview Simulation
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-white">
+            Setup Interview Simulation
           </h2>
-
           <button
             type="button"
-            className="text-gray-300 hover:text-white"
+            className="text-gray-400 hover:text-white transition-colors"
             onClick={onClose}
             disabled={isSubmitting}
           >
@@ -147,10 +153,11 @@ const SetupForm: React.FC<SetupFormProps> = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          
           {/* Target School */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-white">
+            <label className="mb-2 block text-sm font-medium text-gray-300">
               Target B-School <span className="text-red-500">*</span>
             </label>
             <input
@@ -158,17 +165,14 @@ const SetupForm: React.FC<SetupFormProps> = ({
               required
               value={targetSchool}
               onChange={(e) => setTargetSchool(e.target.value)}
-              placeholder="IIM Ahmedabad, XLRI, FMS Delhi, ISB…"
-              className="w-full rounded-md border border-gray-600 
-                       bg-neutral-900 text-white px-3 py-2 text-sm 
-                       placeholder:text-gray-400 outline-none 
-                       focus:border-blue-500"
+              placeholder="e.g. IIM Ahmedabad, ISB, Wharton..."
+              className="w-full rounded-lg border border-neutral-700 bg-neutral-800 text-white px-4 py-2.5 text-sm placeholder:text-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
             />
           </div>
 
           {/* Program */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-white">
+            <label className="mb-2 block text-sm font-medium text-gray-300">
               Program <span className="text-red-500">*</span>
             </label>
             <input
@@ -176,33 +180,24 @@ const SetupForm: React.FC<SetupFormProps> = ({
               required
               value={program}
               onChange={(e) => setProgram(e.target.value)}
-              placeholder="MBA, PGDM, PGPX…"
-              className="w-full rounded-md border border-gray-600 
-                       bg-neutral-900 text-white px-3 py-2 text-sm 
-                       placeholder:text-gray-400 outline-none 
-                       focus:border-blue-500"
+              placeholder="e.g. MBA, PGDM-BM..."
+              className="w-full rounded-lg border border-neutral-700 bg-neutral-800 text-white px-4 py-2.5 text-sm placeholder:text-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
             />
           </div>
 
           {/* Focus */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-white">
+            <label className="mb-2 block text-sm font-medium text-gray-300">
               Interview Focus <span className="text-red-500">*</span>
             </label>
             <select
               required
               value={focus}
               onChange={(e) => setFocus(e.target.value as FocusOption)}
-              className="w-full rounded-md border border-gray-600 
-                       bg-neutral-900 text-white px-3 py-2 text-sm 
-                       outline-none focus:border-blue-500"
+              className="w-full rounded-lg border border-neutral-700 bg-neutral-800 text-white px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all appearance-none"
             >
               {FOCUS_OPTIONS.map((opt) => (
-                <option
-                  key={opt.value}
-                  value={opt.value}
-                  className="text-black"
-                >
+                <option key={opt.value} value={opt.value} className="text-black">
                   {opt.label}
                 </option>
               ))}
@@ -211,23 +206,22 @@ const SetupForm: React.FC<SetupFormProps> = ({
 
           {/* Profile Highlights */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-white">
+            <label className="mb-2 block text-sm font-medium text-gray-300">
               Profile Highlights <span className="text-red-500">*</span>
             </label>
-
-            <div className="mb-2 flex flex-wrap gap-2">
+            
+            <div className="mb-3 flex flex-wrap gap-2">
               {PROFILE_PRESETS.map((preset) => {
                 const active = selectedPresets.includes(preset);
-
                 return (
                   <button
                     key={preset}
                     type="button"
                     onClick={() => togglePreset(preset)}
-                    className={`rounded-full border px-3 py-1 text-xs ${
+                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                       active
-                        ? "border-blue-400 bg-blue-600 text-white"
-                        : "border-gray-500 bg-neutral-800 text-gray-200"
+                        ? "bg-blue-600 text-white border border-blue-500"
+                        : "bg-neutral-800 text-gray-400 border border-neutral-700 hover:border-gray-500"
                     }`}
                   >
                     {preset}
@@ -239,51 +233,23 @@ const SetupForm: React.FC<SetupFormProps> = ({
             <textarea
               value={customHighlights}
               onChange={(e) => setCustomHighlights(e.target.value)}
-              placeholder="Add more details... e.g. engineering background, consulting, debating, NGO volunteering"
-              className="mt-1 w-full min-h-[70px] rounded-md border border-gray-600 
-                       bg-neutral-900 text-white px-3 py-2 text-sm 
-                       placeholder:text-gray-400 outline-none 
-                       focus:border-blue-500"
+              placeholder="Add specific details..."
+              className="w-full min-h-[80px] rounded-lg border border-neutral-700 bg-neutral-800 text-white px-4 py-2.5 text-sm placeholder:text-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all resize-none"
             />
           </div>
 
-          {/* Amount */}
-          <div>
-            <label className="mb-1 block text-sm font-medium text-white">
-              Number of Questions
-            </label>
-            <select
-              required
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="w-full rounded-md border border-gray-600 
-                       bg-neutral-900 text-white px-3 py-2 text-sm 
-                       outline-none focus:border-blue-500"
-            >
-              <option value="5" className="text-black">
-                5
-              </option>
-              <option value="8" className="text-black">
-                8 (recommended)
-              </option>
-              <option value="10" className="text-black">
-                10
-              </option>
-              <option value="12" className="text-black">
-                12
-              </option>
-            </select>
-          </div>
-
-          {/* Error */}
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {/* Error Message */}
+          {error && (
+            <div className="rounded-md bg-red-900/20 border border-red-900/50 p-3">
+              <p className="text-sm text-red-400 text-center">{error}</p>
+            </div>
+          )}
 
           {/* Actions */}
-          <div className="mt-4 flex justify-end gap-2">
+          <div className="mt-6 flex justify-end gap-3 border-t border-neutral-800 pt-5">
             <button
               type="button"
-              className="rounded-md border border-gray-600 px-4 py-2 text-sm 
-                       text-white hover:bg-neutral-800"
+              className="rounded-lg px-4 py-2.5 text-sm font-medium text-gray-300 hover:text-white hover:bg-neutral-800 transition-colors"
               onClick={onClose}
               disabled={isSubmitting}
             >
@@ -292,11 +258,17 @@ const SetupForm: React.FC<SetupFormProps> = ({
 
             <button
               type="submit"
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium 
-                       text-white hover:bg-blue-700 disabled:opacity-50"
               disabled={isSubmitting}
+              className="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-900/20 hover:bg-blue-500 hover:shadow-blue-900/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-              {isSubmitting ? "Creating..." : "Create Interview"}
+              {isSubmitting ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+                  Setting up...
+                </span>
+              ) : (
+                "Start Interview"
+              )}
             </button>
           </div>
         </form>
