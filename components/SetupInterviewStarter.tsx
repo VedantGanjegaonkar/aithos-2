@@ -8,7 +8,7 @@ import SetupForm from "@/components/SetupForm";
 import { toast } from "sonner";
 
 // Update component signature: userId is passed as a string (can be empty string if logged out)
-export default function SetupInterviewStarter({ userId }: { userId: string }) { 
+export default function SetupInterviewStarter({ userId, username }: { userId: string, username: string }) { 
   const [open, setOpen] = useState(false);
 
   const handleCtaClick = () => {
@@ -38,6 +38,7 @@ export default function SetupInterviewStarter({ userId }: { userId: string }) {
           isOpen={open}
           onClose={() => setOpen(false)}
           userId={userId}
+          username={username}
           onSuccess={() => toast.success("Interview created")}
         />
       )}
