@@ -49,7 +49,6 @@ async function Home() {
 
   const hasPastInterviews = pastInterviews.length > 0;
   const hasUpcomingInterviews = upcomingInterviews.length > 0;
-  // const hasPracticeInterviews = allInterview?.length > 0;
 
   return (
     <>
