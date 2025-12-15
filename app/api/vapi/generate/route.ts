@@ -4,7 +4,7 @@ import Retell from "retell-sdk";
 
 import { db } from "@/firebase/admin";
 // FIX: Corrected import from getRandomInterviewCover
-import { getInstitutionImageUrl } from "@/lib/utils"; 
+import { getInstitutionImageUrl } from "@/lib/utils";
 
 // Initialize Retell Client
 const retell = new Retell({
@@ -23,6 +23,7 @@ export async function POST(request: Request) {
     program,
     profileHighlights,
     userid,
+    username,
   } = await request.json();
 
   try {
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
     // -----------------------------------------------------------
     const { text: questions } = await generateText({
       // FIX: Updated model to a current, stable version
-      model: google("gemini-2.5-flash"), 
+      model: google("gemini-2.5-flash"),
       prompt: `
       Prepare questions for an MBA/PGDM admissions interview for top Indian business schools 
         such as the IIMs, XLRI, FMS, ISB, MDI and similar institutes.
@@ -80,8 +81,14 @@ export async function POST(request: Request) {
     // -----------------------------------------------------------
     const retellCall = await retell.call.createWebCall({
       agent_id: process.env.RETELL_AGENT_ID!,
+      retell_llm_dynamic_variables: {
+        username: username,
+        program: program,
+        targetSchool: targetSchool,
+        profileHighlights: profileHighlights,
+      },
     });
-    
+
     // -----------------------------------------------------------
     // 2. SAVE TO FIREBASE
     // -----------------------------------------------------------
@@ -94,30 +101,51 @@ export async function POST(request: Request) {
       userId: userid,
       finalized: true,
       // FIX: Used the correct utility function with an argument
-      coverImage: getInstitutionImageUrl(targetSchool), 
+      coverImage: getInstitutionImageUrl(targetSchool),
       createdAt: new Date().toISOString(),
       // FIX: SAVED THE ACCESS TOKEN HERE
       accessToken: retellCall.access_token,
       callId: retellCall.call_id,
-       
     };
 
     const interviewRef = await db.collection("interviews").add(interview);
 
-
     // Return the access token so the frontend can start the audio
-    return Response.json({ 
-      success: true, 
-      interviewId: interviewRef.id,
-      accessToken: retellCall.access_token 
-    }, { status: 200, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0' } });
-
+    return Response.json(
+      {
+        success: true,
+        interviewId: interviewRef.id,
+        accessToken: retellCall.access_token,
+      },
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        },
+      }
+    );
   } catch (error) {
     console.error("Error:", error);
-    return Response.json({ success: false, error: error }, { status: 500, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0' } });
+    return Response.json(
+      { success: false, error: error },
+      {
+        status: 500,
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        },
+      }
+    );
   }
 }
 
 export async function GET() {
-  return Response.json({ success: true, data: "Retell Agent Ready" }, { status: 200, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0' } });
+  return Response.json(
+    { success: true, data: "Retell Agent Ready" },
+    {
+      status: 200,
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+      },
+    }
+  );
 }

@@ -30,6 +30,7 @@ interface SetupFormProps {
   isOpen: boolean;
   onClose: () => void;
   userId: string;
+  username: string;
   onSuccess?: (data: any) => void;
 }
 
@@ -37,6 +38,7 @@ const SetupForm: React.FC<SetupFormProps> = ({
   isOpen,
   onClose,
   userId,
+  username,
   onSuccess,
 }) => {
   const router = useRouter(); // 👈 Initialize Router
@@ -90,6 +92,7 @@ const SetupForm: React.FC<SetupFormProps> = ({
         },
         body: JSON.stringify({
           userid: userId,
+          username: username,
           targetSchool,
           program,
           focus,

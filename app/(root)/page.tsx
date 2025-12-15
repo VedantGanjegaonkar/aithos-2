@@ -17,8 +17,9 @@ import { getFeedbackByInterviewId } from "@/lib/actions/general.action";
 async function Home() {
   const user = await getCurrentUser();
   // FIX: Use empty string if user is null to prevent Firestore errors
-  const userId = user?.id || ''; 
   
+  const userId = user?.id || ''; 
+  const username = user?.name || '';
   // FIX: Conditionally fetch userInterviews ONLY if userId is NOT an empty string
   const [userInterviews, allInterview] = await Promise.all([
     userId ? getInterviewsByUserId(userId) : Promise.resolve([]), 
@@ -48,7 +49,6 @@ async function Home() {
 
   const hasPastInterviews = pastInterviews.length > 0;
   const hasUpcomingInterviews = upcomingInterviews.length > 0;
-  const hasPracticeInterviews = allInterview?.length > 0;
 
   return (
     <>
@@ -62,7 +62,7 @@ async function Home() {
             Practice real interview questions & get instant, personalized feedback on content, voice, and structure.
           </p>
           {/* userId is passed: if logged out, it's an empty string. */}
-          <SetupInterviewStarter userId={userId} /> 
+          <SetupInterviewStarter userId={userId} username={username} /> 
         </div>
 
         <Image
