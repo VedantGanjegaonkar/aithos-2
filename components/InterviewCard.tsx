@@ -1,10 +1,12 @@
+// components/InterviewCard.tsx
 import dayjs from "dayjs";
 import Link from "next/link";
 import Image from "next/image";
 
 import { Button } from "./ui/button";
 import DisplayTechIcons from "./DisplayTechIcons";
-import { cn, getInstitutionImageUrl } from "@/lib/utils"; // <-- getInstitutionImageUrl is imported
+// FIX 1: Import getTechLogos
+import { cn, getInstitutionImageUrl, getTechLogos } from "@/lib/utils";
 
 import { getFeedbackByInterviewId } from "@/lib/actions/general.action";
 
@@ -12,9 +14,9 @@ import { getFeedbackByInterviewId } from "@/lib/actions/general.action";
 // interface InterviewCardProps {
 //   interviewId: string;
 //   userId: string;
-//   role: string; // This is the clean college name (e.g., "IIM Ahmedabad")
+//   role: string;
 //   type: string;
-//   techstack: string[];
+//   techstack: string[]; // This is the raw array of tech names
 //   createdAt: Date;
 // }
 
@@ -26,6 +28,9 @@ const InterviewCard = async ({
   techstack,
   createdAt,
 }: InterviewCardProps) => {
+  // FIX 2: Fetch the resolved tech icons array here (Server-side)
+  const techIcons = await getTechLogos(techstack);
+
   const feedback =
     userId && interviewId
       ? await getFeedbackByInterviewId({
@@ -36,14 +41,10 @@ const InterviewCard = async ({
 
   const normalizedType = /mix/gi.test(type) ? "Mixed" : type;
   
-  // NOTE: You don't need the badgeColor map if you are removing the old type badge
-  // I will keep the badge logic for the new tag area, but it will be styled differently.
-  
   const formattedDate = dayjs(
     feedback?.createdAt || createdAt || Date.now()
   ).format("MMM D, YYYY");
 
-  // --- NEW LOGIC: Get the specific image URL ---
   const institutionImage = getInstitutionImageUrl(role); 
 
   return (
@@ -107,7 +108,8 @@ const InterviewCard = async ({
       
       {/* --- Footer (Tech Icons and Button) --- */}
       <div className="flex flex-row justify-between p-4 border-t border-gray-700/50">
-        <DisplayTechIcons techStack={techstack} />
+        {/* FIX 3: Pass the resolved array with the correct prop name */}
+        <DisplayTechIcons techIcons={techIcons} />
 
         <Button className="btn-primary">
           <Link

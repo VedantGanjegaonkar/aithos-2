@@ -1,5 +1,4 @@
-
-
+// components/NavBar.tsx
 "use client";
 
 import React, { useState } from 'react';
@@ -23,9 +22,10 @@ interface NavBarProps {
   user: User | null; // Pass the user object
 }
 
-// Define your key navigation items
+// FIX: Updated key navigation items. 
+// "Features" is removed/replaced. "Dashboard" is added.
 const NAV_LINKS = [
-  { name: "Features", href: "/" },
+  { name: "Dashboard", href: "/dashboard" }, // NEW Dashboard link
   { name: "Pricing", href: "/" },
   { name: "About", href: "/" },
 ];
@@ -49,7 +49,6 @@ const NavBar = ({ isAuthenticated, user }: NavBarProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const toggleMenu = () => setIsOpen(!isOpen);
   
-  // Use a placeholder image path if user.profileURL is undefined
   const userAvatarSrc = user?.profileURL || "/user-avatar.png"; 
 
   return (
@@ -61,13 +60,13 @@ const NavBar = ({ isAuthenticated, user }: NavBarProps) => {
     ">
       <div className="flex items-center justify-between mx-auto max-w-7xl">
         
-        {/* --- 1. LOGO / BRAND --- */}
+        {/* --- 1. LOGO / BRAND (Links to new Landing Page) --- */}
         <Link href="/" className="flex items-center space-x-2">
           <Image src="/logo.svg" alt="Aithos Logo" width={32} height={32} />
           <span className="text-xl font-bold text-primary-200">Aithos</span> 
         </Link>
 
-        {/* --- 2. DESKTOP LINKS --- */}
+        {/* --- 2. DESKTOP LINKS (Updated) --- */}
         <div className="hidden md:flex items-center space-x-8"> 
           {NAV_LINKS.map((link) => (
             <Link 
@@ -83,10 +82,11 @@ const NavBar = ({ isAuthenticated, user }: NavBarProps) => {
         {/* --- 3. DESKTOP CTAS (Conditional) --- */}
         <div className="hidden md:flex items-center space-x-4">
           {isAuthenticated ? (
-            // AUTHENTICATED STATE: Avatar + Profile Link + Log Out
+            // AUTHENTICATED STATE: Avatar + Dashboard/Profile Link + Log Out
             <>
+              {/* FIX: Changed profile link to Dashboard (assuming user link was meant for primary user area) */}
               <Link 
-                href="/" 
+                href="/dashboard" 
                 className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
               >
                 {/* User Avatar */}
@@ -97,7 +97,7 @@ const NavBar = ({ isAuthenticated, user }: NavBarProps) => {
                   height={32}
                   className="rounded-full object-cover size-8 border-2 border-primary-200/50"
                 />
-                <span className="text-sm font-semibold hidden lg:inline">{user?.name || "Profile"}</span>
+                <span className="text-sm font-semibold hidden lg:inline">{user?.name || "Dashboard"}</span>
               </Link>
               <SignOutButton />
             </>
@@ -132,6 +132,7 @@ const NavBar = ({ isAuthenticated, user }: NavBarProps) => {
       `}>
         <div className="flex flex-col space-y-3 pt-3">
           
+          {/* Mobile Navigation Links (Updated) */}
           {NAV_LINKS.map((link) => (
             <Link 
               key={link.name} 
@@ -144,9 +145,9 @@ const NavBar = ({ isAuthenticated, user }: NavBarProps) => {
           ))}
           
           {isAuthenticated ? (
-            // Authenticated Mobile Links
+            // Authenticated Mobile Links (Updated Profile link to Dashboard)
             <>
-              <Link href="/profile" onClick={() => setIsOpen(false)} className="text-gray-300 hover:text-white transition-colors block py-2 text-base font-medium">
+              <Link href="/dashboard" onClick={() => setIsOpen(false)} className="text-gray-300 hover:text-white transition-colors block py-2 text-base font-medium border-t border-gray-700/50">
                 <div className="flex items-center space-x-2">
                   <Image
                     src={userAvatarSrc}
@@ -155,7 +156,7 @@ const NavBar = ({ isAuthenticated, user }: NavBarProps) => {
                     height={24}
                     className="rounded-full object-cover size-6 border-2 border-primary-200/50"
                   />
-                  <span>{user?.name || "Profile"}</span>
+                  <span>Dashboard</span>
                 </div>
               </Link>
               <SignOutButton />

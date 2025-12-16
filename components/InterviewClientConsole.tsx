@@ -3,18 +3,23 @@
 
 import { useState } from 'react';
 import Image from "next/image";
-// Import Agent and CallStatus from the Agent component
+// Import the necessary components and CallStatus enum
 import Agent, { CallStatus } from "@/components/Agent"; 
 import InterviewTimer from "@/components/InterviewTimer";
-import { getInstitutionImageUrl } from "@/lib/utils";
 import DisplayTechIcons from "@/components/DisplayTechIcons";
+import { getInstitutionImageUrl } from "@/lib/utils";
 import { redirect } from 'next/navigation';
 
-// Define the necessary prop types based on data fetched in the parent server component
+// --- Data Interfaces (Match what the Server Component passes) ---
+interface TechIcon {
+    tech: string;
+    url: string;
+}
+
 interface InterviewData {
     role: string;
     type: string;
-    techstack: string[];
+    techIcons: TechIcon[]; // Array of resolved icon objects
     accessToken: string;
     callId: string;
     questions?: string[];
@@ -22,7 +27,7 @@ interface InterviewData {
 
 interface UserData {
     name: string;
-    id: string; // The InterviewDetails server component ensures this is present
+    id: string; 
 }
 
 interface FeedbackData {
@@ -35,6 +40,7 @@ interface InterviewClientConsoleProps {
     feedback: FeedbackData | null;
     interviewId: string;
 }
+// ------------------------------------------------------------------
 
 const InterviewClientConsole = ({ 
     interview, 
@@ -42,11 +48,10 @@ const InterviewClientConsole = ({
     feedback, 
     interviewId 
 }: InterviewClientConsoleProps) => {
-    // Client-side state for call status, passed to Agent and Timer
+    // Client-side state for call status, shared between Agent and Timer
     const [currentCallStatus, setCurrentCallStatus] = useState<CallStatus>(CallStatus.INACTIVE);
 
-    // Although the parent server component should ensure user exists,
-    // we use redirect here defensively if data somehow gets lost in transit (optional, but safe)
+    // Defensive check (although the Server Component should ensure validity)
     if (!user || !interview) redirect("/");
 
     return (
@@ -64,10 +69,11 @@ const InterviewClientConsole = ({
                         />
                         <h3 className="capitalize text-light-100">{interview.role} Interview</h3>
                     </div>
-                    <DisplayTechIcons techStack={interview.techstack} />
+                    {/* DisplayTechIcons receives the pre-fetched, structured data */}
+                    <DisplayTechIcons techIcons={interview.techIcons} />
                 </div>
                 
-                {/* Interview Timer and Type Badge */}
+                {/* Interview Timer and Type Badge (Timer uses currentCallStatus) */}
                 <div className="flex items-center gap-4">
                     <InterviewTimer callStatus={currentCallStatus} />
                     <p className="bg-dark-200 px-4 py-2 rounded-lg h-fit text-light-400 border border-border">
@@ -76,6 +82,7 @@ const InterviewClientConsole = ({
                 </div>
             </div>
 
+            {/* Agent component requires the onStatusChange prop */}
             <Agent
                 userName={user.name!}
                 userId={user.id}
@@ -85,7 +92,7 @@ const InterviewClientConsole = ({
                 feedbackId={feedback?.id}
                 accessToken={interview.accessToken!}
                 callId={interview.callId!} 
-                // FIX: Passing the required onStatusChange prop
+                // FIX: Passing the state setter function to Agent
                 onStatusChange={setCurrentCallStatus} 
             />
         </>

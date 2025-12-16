@@ -228,6 +228,12 @@ export async function getLatestInterviews(params: GetLatestInterviewsParams): Pr
 }
 
 export async function getInterviewsByUserId(userId: string): Promise<Interview[] | null> {
-  const interviews = await db.collection("interviews").where("userId", "==", userId).get();
-  return interviews.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Interview[];
+    const interviews = await db.collection("interviews")
+        .where("userId", "==", userId)
+        .orderBy("createdAt", "desc") // <-- ADDED: Ensure interviews are sorted newest first
+        .get();
+        
+    if (interviews.empty) return null;
+
+    return interviews.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Interview[];
 }

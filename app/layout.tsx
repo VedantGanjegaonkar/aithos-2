@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { Mona_Sans } from "next/font/google";
 
 import "./globals.css";
+import Footer from '@/components/Footer'; // Import the new component
 
 const monaSans = Mona_Sans({
   variable: "--font-mona-sans",
@@ -22,9 +23,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
+    // Re-enables the dark mode class on the html tag
     <html lang="en" className="dark">
-      {/* The 'pattern' and 'site-dark-gradient' are applied here from globals.css */}
-      <body className={`${monaSans.className} antialiased pattern site-dark-gradient`}>
+      {/* Re-applies the pattern and gradient for the full-page dark background */}
+      <body className={`${monaSans.className} antialiased pattern rich-blue-gradient-dark`}>
         {children}
 
         <Toaster />

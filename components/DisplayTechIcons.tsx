@@ -1,13 +1,27 @@
+// components/DisplayTechIcons.tsx
+// This component MUST NOT have 'use client' or be an async function.
 import Image from "next/image";
+import { cn } from "@/lib/utils"; 
 
-import { cn, getTechLogos } from "@/lib/utils";
+interface TechIcon {
+    tech: string;
+    url: string;
+}
 
-const DisplayTechIcons = async ({ techStack }: TechIconProps) => {
-  const techIcons = await getTechLogos(techStack);
+interface DisplayTechIconsProps {
+  // Receives the array of resolved icons from the server
+  techIcons: TechIcon[]; 
+}
+
+// FIX: Ensure this is NOT an async function
+const DisplayTechIcons = ({ techIcons }: DisplayTechIconsProps) => {
+  
+  // Defensive check (though the server should guarantee an array, this is safe)
+  const iconsToDisplay = Array.isArray(techIcons) ? techIcons : [];
 
   return (
     <div className="flex flex-row">
-      {techIcons.slice(0, 3).map(({ tech, url }, index) => (
+      {iconsToDisplay.slice(0, 3).map(({ tech, url }, index) => (
         <div
           key={tech}
           className={cn(
@@ -15,7 +29,8 @@ const DisplayTechIcons = async ({ techStack }: TechIconProps) => {
             index >= 1 && "-ml-3"
           )}
         >
-          <span className="tech-tooltip">{tech}</span>
+          {/* Tooltip logic if needed */}
+          <span className="tech-tooltip">{tech}</span> 
 
           <Image
             src={url}

@@ -3,6 +3,7 @@
 import { ReactNode } from "react";
 import NavBar from "@/components/NavBar";
 import { getCurrentUser } from "@/lib/actions/auth.action";
+import Footer from "@/components/Footer";
 
 const Layout = async ({ children }: { children: ReactNode }) => {
   // Fetches user, but does NOT redirect if null (public homepage)
@@ -18,6 +19,7 @@ const Layout = async ({ children }: { children: ReactNode }) => {
       <div className="root-layout pt-20">
         {children}
       </div>
+      <Footer />
     </>
   );
 };

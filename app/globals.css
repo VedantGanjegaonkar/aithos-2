@@ -10,17 +10,19 @@
   --color-destructive-100: #f75353;
   --color-destructive-200: #c44141;
 
-  --color-primary-100: #dddfff;
-  --color-primary-200: #cac5fe;
+  /* PREMIUM DARK PRIMARY COLORS */
+  --color-primary-100: #DDDFFF; /* Light Purple for accents/text */
+  --color-primary-200: #A8A0FF; /* Richer, more vibrant primary button color */
 
+  /* PREMIUM DARK SHADES (Navy/Charcoal for depth) */
   --color-light-100: #d6e0ff;
   --color-light-400: #6870a6;
   --color-light-600: #4f557d;
-  --color-light-800: #24273a;
+  --color-light-800: #24273A; /* Dark Foreground Text/Accents */
 
   --color-dark-100: #020408;
-  --color-dark-200: #27282f;
-  --color-dark-300: #242633;
+  --color-dark-200: #1C1E26; /* Dark Card/Input Background (Premium Charcoal) */
+  --color-dark-300: #13141A; /* Deep Background */
 
   --font-mona-sans: "Mona Sans", sans-serif;
 
@@ -28,6 +30,7 @@
 }
 
 :root {
+  /* LIGHT MODE (Fallback definitions) */
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -63,37 +66,35 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: var(--light-100);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  /* PREMIUM DARK MODE DEFINITIONS */
+  --background: var(--color-dark-300); /* Deep Background */
+  --foreground: var(--color-light-100); /* Light Text */
+  --card: var(--color-dark-200); /* Charcoal Card */
+  --card-foreground: var(--color-light-100);
+  --popover: var(--color-dark-200);
+  --popover-foreground: var(--color-light-100);
+  --primary: var(--color-primary-200); /* Rich Accent Purple */
+  --primary-foreground: var(--color-dark-100); /* Dark Text on Primary */
+  --secondary: var(--color-dark-200);
+  --secondary-foreground: var(--color-light-100);
+  --muted: var(--color-dark-200);
+  --muted-foreground: var(--color-light-400); /* Grayed out text */
+  --accent: var(--color-dark-200);
+  --accent-foreground: var(--color-light-100);
+  --destructive: var(--color-destructive-100);
+  --border: oklch(1 0 0 / 10%); /* Subtle White/Light border */
+  --input: var(--color-dark-200);
+  --ring: var(--color-primary-200);
+
+  /* Sidebar */
+  --sidebar: var(--color-dark-300);
+  --sidebar-foreground: var(--color-light-100);
+  --sidebar-primary: var(--color-primary-200);
+  --sidebar-primary-foreground: var(--color-dark-100);
+  --sidebar-accent: var(--color-dark-200);
+  --sidebar-accent-foreground: var(--color-light-100);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: var(--color-primary-200);
 }
 
 @theme inline {
@@ -159,6 +160,7 @@
 }
 
 @layer components {
+  /* Button updates: using primary-200 (vibrant purple) for CTA */
   .btn-call {
     @apply inline-block px-7 py-3 font-bold text-sm leading-5 text-white transition-colors duration-150 bg-success-100 border border-transparent rounded-full shadow-sm focus:outline-none focus:shadow-2xl active:bg-success-200 hover:bg-success-200 min-w-28 cursor-pointer items-center justify-center overflow-visible;
 
@@ -175,10 +177,10 @@
     @apply flex min-h-14 w-full items-center justify-center gap-1.5 rounded-md;
   }
   .btn-primary {
-    @apply w-fit !bg-primary-200 !text-dark-100 hover:!bg-primary-200/80 !rounded-full !font-bold px-5 cursor-pointer min-h-10;
+    @apply w-fit !bg-primary-200 !text-dark-100 hover:!bg-primary-200/90 !rounded-full !font-bold px-5 cursor-pointer min-h-10 transition-colors;
   }
   .btn-secondary {
-    @apply w-fit !bg-dark-200 !text-primary-200 hover:!bg-dark-200/80 !rounded-full !font-bold px-5 cursor-pointer min-h-10;
+    @apply w-fit !bg-dark-200 !text-primary-200 hover:!bg-dark-200/80 !rounded-full !font-bold px-5 cursor-pointer min-h-10 transition-colors;
   }
 
   .btn-upload {
@@ -205,7 +207,7 @@
     }
 
     .btn {
-      @apply !w-full !bg-primary-200 !text-dark-100 hover:!bg-primary-200/80 !rounded-full !min-h-10 !font-bold !px-5 cursor-pointer;
+      @apply !w-full !bg-primary-200 !text-dark-100 hover:!bg-primary-200/90 !rounded-full !min-h-10 !font-bold !px-5 cursor-pointer transition-colors;
     }
   }
 
@@ -217,14 +219,19 @@
     }
 
     .card-interviewer {
-      @apply flex-center flex-col gap-2 p-7 h-[400px] blue-gradient-dark rounded-lg border-2 border-primary-200/50 flex-1 sm:basis-1/2 w-full;
+      /* PREMIUM INTERVIEWER CARD: Use Card BG, Border, and a subtle glow */
+      @apply flex-center flex-col gap-2 p-7 h-[400px] 
+             bg-card rounded-lg border-2 border-primary-200/50 
+             shadow-primary-200/20 shadow-2xl transition-all duration-300 hover:shadow-primary-200/50
+             flex-1 sm:basis-1/2 w-full;
     }
 
     .avatar {
       @apply z-10 flex items-center justify-center blue-gradient rounded-full size-[120px] relative;
 
       .animate-speak {
-        @apply absolute inline-flex size-5/6 animate-ping rounded-full bg-primary-200 opacity-75;
+        /* CHANGED: Subtle pulsing instead of hard ping */
+        @apply absolute inline-flex size-5/6 rounded-full bg-primary-200 opacity-75 animate-pulse-glow;
       }
     }
 
@@ -238,10 +245,12 @@
   }
 
   .transcript-border {
-    @apply border-gradient p-0.5 rounded-2xl w-full;
+    /* PREMIUM TRANSCRIPT: Use a thicker, more defined border/shadow */
+    @apply border-gradient p-0.5 rounded-2xl w-full shadow-lg shadow-primary-200/10;
 
     .transcript {
-      @apply dark-gradient rounded-2xl  min-h-12 px-5 py-3 flex items-center justify-center;
+      /* Use a slightly transparent dark background for a subtle overlay effect */
+      @apply bg-dark-200/90 rounded-2xl  min-h-12 px-5 py-3 flex items-center justify-center backdrop-blur-sm;
 
       p {
         @apply text-lg text-center text-white;
@@ -282,11 +291,11 @@
   }
 
   .tech-tooltip {
-    @apply absolute bottom-full mb-1 hidden group-hover:flex px-2 py-1 text-xs text-white bg-gray-700 rounded-md shadow-md;
+    @apply absolute bottom-full mb-1 hidden group-hover:flex px-2 py-1 text-xs text-white bg-dark-200 rounded-md shadow-md;
   }
 
   .card-interview {
-    @apply dark-gradient rounded-2xl min-h-full flex flex-col p-6 relative overflow-hidden gap-10 justify-between;
+    @apply dark-gradient rounded-2xl min-h-full flex flex-col p-6 relative overflow-hidden gap-10 justify-between shadow-2xl;
 
     .badge-text {
       @apply text-sm font-semibold capitalize;
@@ -294,28 +303,28 @@
   }
 
   .interview-card-panel {
-  @apply w-80 shadow-lg overflow-hidden;
+  @apply w-80 shadow-2xl overflow-hidden;
   @apply glass-light-bg rounded-xl;
   @apply backdrop-blur-xl;
-  @apply border border-white/10;
+  @apply border border-border;
   @apply transition-all duration-300 hover:scale-[1.01] hover:shadow-primary-200/50;
   }
 
   .interview-card-panel h2 {
-  @apply text-white; 
+  @apply text-white;
   }
 
   .interview-card-panel p {
-  @apply text-gray-200; 
+  @apply text-gray-200;
   }
 
 
   .interview-card-panel .card-image-wrapper {
-    @apply p-2; 
+    @apply p-2;
   }
 
   .interview-card-panel .card-image-panel {
-    @apply w-full h-auto object-cover rounded-lg; 
+    @apply w-full h-auto object-cover rounded-lg;
 
     height: 200px;
   }
@@ -325,6 +334,8 @@
     @apply p-4 pt-2 relative;
   }
 }
+
+/* CUSTOM UTILITIES - UPDATED FOR PREMIUM LOOK */
 
 @utility dark-gradient {
   @apply bg-gradient-to-b from-[#1A1C20] to-[#08090D];
@@ -347,11 +358,16 @@
 }
 
 @utility dark-purple-gradient {
-  @apply bg-gradient-to-br from-light-800 to-purple-900; 
+  @apply bg-gradient-to-br from-light-800 to-purple-900;
 }
 
 @utility glass-light-bg{
   @apply bg-purple-900/30;
+}
+
+@utility call-button-gradient {
+  /* NEW: Gradient from purple to blue for a premium CTA */
+  @apply bg-gradient-to-r from-primary-200 to-[#5B21B6] text-white hover:from-[#7C3AED] hover:to-[#6D28D9];
 }
 
 @utility flex-center {
@@ -360,6 +376,11 @@
 
 @utility animate-fadeIn {
   animation: fadeIn 0.3s ease-in-out;
+}
+
+/* NEW KEYFRAME FOR PREMIUM AVATAR EFFECT */
+@utility animate-pulse-glow {
+  animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 
@@ -371,5 +392,16 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.0);
   }
 }
