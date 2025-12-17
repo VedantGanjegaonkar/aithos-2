@@ -5,20 +5,17 @@ import Image from "next/image";
 
 import { Button } from "./ui/button";
 import DisplayTechIcons from "./DisplayTechIcons";
-// FIX 1: Import getTechLogos
-import { cn, getInstitutionImageUrl, getTechLogos } from "@/lib/utils";
-
+import { getInstitutionLogoUrl, getTechLogos } from "@/lib/utils";
 import { getFeedbackByInterviewId } from "@/lib/actions/general.action";
 
-// Assuming InterviewCardProps is defined elsewhere
-// interface InterviewCardProps {
-//   interviewId: string;
-//   userId: string;
-//   role: string;
-//   type: string;
-//   techstack: string[]; // This is the raw array of tech names
-//   createdAt: Date;
-// }
+interface InterviewCardProps {
+  interviewId: string;
+  userId: string;
+  role: string;
+  type: string;
+  techstack: string[] | string;
+  createdAt: string | Date;
+}
 
 const InterviewCard = async ({
   interviewId,
@@ -28,100 +25,77 @@ const InterviewCard = async ({
   techstack,
   createdAt,
 }: InterviewCardProps) => {
-  // FIX 2: Fetch the resolved tech icons array here (Server-side)
   const techIcons = await getTechLogos(techstack);
-
-  const feedback =
-    userId && interviewId
-      ? await getFeedbackByInterviewId({
-          interviewId,
-          userId,
-        })
+  const feedback = userId && interviewId
+      ? await getFeedbackByInterviewId({ interviewId, userId })
       : null;
 
   const normalizedType = /mix/gi.test(type) ? "Mixed" : type;
+  const formattedDate = dayjs(createdAt || Date.now()).format("MMM D, YYYY");
   
-  const formattedDate = dayjs(
-    feedback?.createdAt || createdAt || Date.now()
-  ).format("MMM D, YYYY");
-
-  const institutionImage = getInstitutionImageUrl(role); 
+  // Safety: Ensure logoUrl is never an empty string
+  const logoUrl = getInstitutionLogoUrl(role) || `https://ui-avatars.com/api/?name=${encodeURIComponent(role)}`; 
 
   return (
-    // Replaced card-border and w-[360px] with the new semantic panel class
-    // The panel class handles the w-80 (320px) width, gradient, and rounded corners.
-    <div className="interview-card-panel w-[360px] max-sm:w-full">
-      
-      {/* --- Image Panel Section (Wraps the image to create the margin/padding) --- */}
-      <div className="card-image-wrapper">
-        <Image
-          src={institutionImage} // <-- Uses the new deterministic function
-          alt={`Campus image of ${role}`}
-          width={500} // Width for filling the container
-          height={200} // Set fixed height for the banner look
-          className="card-image-panel" // Class for w-full, object-cover, and rounded-lg
-        />
-      </div>
-
-      {/* --- Text Content Section (Handles padding and positions the absolute tag) --- */}
-      <div className="card-content"> 
+    <div className="card-border w-full h-full group animate-fadeIn">
+      <div className="card flex flex-col justify-between overflow-hidden h-full">
         
-        {/* Interview Role (Main Title) */}
-        {/* We use h2 and add " - MBA" for the new card look. Styling handled by CSS. */}
-        <h2 className="text-xl font-bold mb-1">
-          {role} - MBA
-        </h2>
-
-        {/* Date & Score (This becomes the detailed sub-text) */}
-        <div className="flex flex-row gap-5 mt-1">
-          {/* Calendar Date */}
-          <div className="flex flex-row gap-2 items-center text-sm">
+        {/* Header/Logo Section */}
+        <div className="relative w-full h-44 bg-white/[0.03] flex items-center justify-center p-10 overflow-hidden">
+          <div className="absolute inset-0 bg-primary-200/5 blur-[50px] rounded-full" />
+          
+          <div className="relative w-28 h-28 transition-transform duration-500 group-hover:scale-110">
             <Image
-              src="/calendar.svg"
-              width={16}
-              height={16}
-              alt="calendar"
+              src={logoUrl}
+              alt={`${role} logo`}
+              fill
+              sizes="112px" 
+              className="object-contain relative z-10"
+              priority={false}
             />
-            <p className="text-sm">{formattedDate}</p>
           </div>
 
-          {/* Score */}
-          <div className="flex flex-row gap-2 items-center text-sm">
-            <Image src="/star.svg" width={16} height={16} alt="star" />
-            <p className="text-sm">{feedback?.totalScore || "---"}/100</p>
+          <div className="absolute top-4 right-4 bg-primary-200 text-dark-300 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl">
+            {normalizedType}
           </div>
         </div>
 
-        {/* Optional: Placeholder for a short detail line (like "A1 (CDC) | 35.22 LPA") */}
-        <p className="line-clamp-2 mt-3">
-          {/* Using the assessment as the primary content, similar to the original card's text */}
-          {feedback?.finalAssessment ||
-            "You haven't taken this interview yet. Take it now to improve your skills."}
-        </p>
-        
-        {/* Corner Tag: Uses the normalizedType as the badge text */}
-        <span className="card-placement-tag">
-          {normalizedType.toUpperCase()} 
-        </span>
+        {/* Content Section */}
+        <div className="p-6 flex flex-col flex-1">
+          <h2 className="text-xl font-bold text-white mb-2 line-clamp-1">
+            {role} <span className="text-primary-200/80">- MBA</span>
+          </h2>
 
-      </div>
-      
-      {/* --- Footer (Tech Icons and Button) --- */}
-      <div className="flex flex-row justify-between p-4 border-t border-gray-700/50">
-        {/* FIX 3: Pass the resolved array with the correct prop name */}
-        <DisplayTechIcons techIcons={techIcons} />
+          <div className="flex items-center gap-4 mb-4">
+            <div className="flex items-center gap-1.5">
+              <Image src="/calendar.svg" width={14} height={14} alt="calendar icon" className="opacity-50" />
+              <p className="text-xs text-gray-400">{formattedDate}</p>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Image src="/star.svg" width={14} height={14} alt="score icon" className="opacity-50" />
+              <p className="text-xs text-primary-200 font-bold">
+                {feedback?.totalScore !== undefined ? `${feedback.totalScore}/100` : "---"}
+              </p>
+            </div>
+          </div>
 
-        <Button className="btn-primary">
-          <Link
-            href={
-              feedback
-                ? `/interview/${interviewId}/feedback`
-                : `/interview/${interviewId}`
-            }
-          >
-            {feedback ? "Check Feedback" : "View Interview"}
-          </Link>
-        </Button>
+          <p className="text-sm text-gray-400 line-clamp-3 leading-relaxed mb-6 italic">
+            &quot;{feedback?.finalAssessment || 
+              "Session pending. Complete the interview to receive your AI-powered performance breakdown."}
+            &quot;
+          </p>
+
+          {/* Footer Area */}
+          <div className="mt-auto pt-5 border-t border-white/5 flex items-center justify-between">
+            <DisplayTechIcons techIcons={techIcons} />
+
+            <Link href={feedback ? `/interview/${interviewId}/feedback` : `/interview/${interviewId}`}>
+              <Button className="btn-primary scale-90 origin-right transition-all">
+                {feedback ? "Feedback" : "Resume"}
+              </Button>
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );

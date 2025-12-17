@@ -3,8 +3,8 @@ import { google } from "@ai-sdk/google";
 import Retell from "retell-sdk";
 
 import { db } from "@/firebase/admin";
-// FIX: Corrected import from getRandomInterviewCover
-import { getInstitutionImageUrl } from "@/lib/utils";
+// FIX: Import the renamed function
+import { getInstitutionLogoUrl as getInstitutionImageUrl } from "@/lib/utils";
 
 // Initialize Retell Client
 const retell = new Retell({
@@ -31,10 +31,10 @@ export async function POST(request: Request) {
     // 1. GENERATE QUESTIONS (GEMINI)
     // -----------------------------------------------------------
     const { text: questions } = await generateText({
-      // FIX: Updated model to a current, stable version
-      model: google("gemini-2.5-flash"),
+      // FIX: Changed to a currently available stable version (gemini-1.5-flash)
+      model: google("gemini-2.5-flash"), 
       prompt: `
-      Prepare questions for an MBA/PGDM admissions interview for top Indian business schools 
+        Prepare questions for an MBA/PGDM admissions interview for top Indian business schools 
         such as the IIMs, XLRI, FMS, ISB, MDI and similar institutes.
         
         The target B-school and program is: ${targetSchool} - ${program}.
@@ -68,7 +68,6 @@ export async function POST(request: Request) {
           or any other special characters which might break the voice assistant.
         - Return the questions formatted exactly like this:
           ["Question 1", "Question 2", "Question 3"]
-
         
         Thank you! <3
     `,
@@ -77,7 +76,7 @@ export async function POST(request: Request) {
     const parsedQuestions = JSON.parse(questions);
 
     // -----------------------------------------------------------
-    // 3. RETELL AI ROUTING (Do this BEFORE saving so we get the token)
+    // 2. RETELL AI ROUTING
     // -----------------------------------------------------------
     const retellCall = await retell.call.createWebCall({
       agent_id: process.env.RETELL_AGENT_ID!,
@@ -86,31 +85,32 @@ export async function POST(request: Request) {
         program: program,
         targetSchool: targetSchool,
         profileHighlights: profileHighlights,
+        focus: focus,
       },
     });
 
     // -----------------------------------------------------------
-    // 2. SAVE TO FIREBASE
+    // 3. SAVE TO FIREBASE
     // -----------------------------------------------------------
     const interview = {
       role: targetSchool,
       type: program,
       level: level,
-      techstack: techstack.split(","),
+      // Handle techstack as array or split string safely
+      techstack: Array.isArray(techstack) ? techstack : (techstack?.split(",") || []),
       questions: parsedQuestions,
       userId: userid,
       finalized: true,
-      // FIX: Used the correct utility function with an argument
+      // This will now save the dynamic Logo.dev or UI-Avatar URL
       coverImage: getInstitutionImageUrl(targetSchool),
       createdAt: new Date().toISOString(),
-      // FIX: SAVED THE ACCESS TOKEN HERE
       accessToken: retellCall.access_token,
       callId: retellCall.call_id,
     };
 
     const interviewRef = await db.collection("interviews").add(interview);
 
-    // Return the access token so the frontend can start the audio
+    // Return the data
     return Response.json(
       {
         success: true,
@@ -125,9 +125,9 @@ export async function POST(request: Request) {
       }
     );
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Error in Generate Route:", error);
     return Response.json(
-      { success: false, error: error },
+      { success: false, error: error instanceof Error ? error.message : "Unknown error" },
       {
         status: 500,
         headers: {

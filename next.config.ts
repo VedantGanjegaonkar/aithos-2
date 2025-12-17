@@ -1,22 +1,17 @@
+// next.config.ts
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  // images: {
-  //   remotePatterns: [
-  //     {
-  //       protocol: "https",
-  //       hostname: "ik.imagekit.io",
-  //       port: "",
-  //     },
-  //   ],
-  // },
-  eslint: {
-    ignoreDuringBuilds: true,
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "ik.imagekit.io" },
+      { protocol: "https", hostname: "img.logo.dev" },
+      { protocol: "https", hostname: "ui-avatars.com" },
+      { protocol: "https", hostname: "cdn.simpleicons.org" }, // 👈 ADD THIS
+    ],
   },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: true },
 };
 
 export default nextConfig;
