@@ -27,7 +27,7 @@ interface NavBarProps {
 const NAV_LINKS = [
   { name: "Dashboard", href: "/dashboard" }, // NEW Dashboard link
   { name: "Pricing", href: "/" },
-  { name: "About", href: "/" },
+  { name: "About", href: "/about" },
 ];
 
 // Client component wrapper for Log Out functionality
