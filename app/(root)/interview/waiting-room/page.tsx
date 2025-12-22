@@ -16,7 +16,7 @@ function WaitingRoomContent() {
 
     const [status, setStatus] = useState<string>("waiting");
     const [queuePosition, setQueuePosition] = useState<number | null>(null);
-    const [timeLeft, setTimeLeft] = useState<number>(300); // 5 minutes default
+    const [timeLeft, setTimeLeft] = useState<number>(300);
     const [endTime, setEndTime] = useState<number | null>(null);
     const [isLaunching, setIsLaunching] = useState(false);
     const [micTested, setMicTested] = useState(false);
@@ -27,14 +27,13 @@ function WaitingRoomContent() {
         stateRef.current = { status, queueId };
     }, [status, queueId]);
 
-    // --- 2. TAB CLOSE CLEANUP (The "Nuclear" Option) ---
+    // --- 2. TAB CLOSE CLEANUP ---
     useEffect(() => {
         const handleLeave = () => {
             const { queueId: latestId } = stateRef.current;
             if (latestId) {
                 const params = new URLSearchParams();
                 params.append("queueId", latestId);
-                // Use keepalive fetch as primary, beacon as secondary
                 fetch(`${window.location.origin}/api/queue/leave`, {
                     method: 'POST',
                     body: params,
@@ -57,12 +56,17 @@ function WaitingRoomContent() {
     useEffect(() => {
         if (!queueId) return;
 
-        // Listener A: Status & Expiry Time
         const unsubDoc = onSnapshot(doc(db, "interview_queue", queueId), (snap) => {
             if (snap.exists()) {
                 const data = snap.data();
+
+                // 🔥 FIX: Prevent flicker by resetting timer state immediately during transition
+                if (data.status === "reserved" && status === "waiting") {
+                    setTimeLeft(300);
+                }
+
                 setStatus(data.status);
-                // Capture the server-side expiry timestamp
+
                 if (data.timerEndsAt) {
                     setEndTime(data.timerEndsAt.seconds * 1000);
                 }
@@ -73,7 +77,6 @@ function WaitingRoomContent() {
             if (err.code !== "permission-denied") console.error("Doc Error:", err);
         });
 
-        // Listener B: Queue Position
         let unsubQueue: () => void;
         if (status === "waiting") {
             const q = query(
@@ -98,12 +101,14 @@ function WaitingRoomContent() {
 
     // --- 4. LIVE COUNTDOWN TIMER ---
     useEffect(() => {
+        // If we don't have an endTime yet, don't start the timer logic
         if (status !== "reserved" || !endTime) return;
 
         const interval = setInterval(() => {
             const now = new Date().getTime();
             const distance = endTime - now;
 
+            // Only expire if the distance is truly past 0
             if (distance <= 0) {
                 clearInterval(interval);
                 setTimeLeft(0);
