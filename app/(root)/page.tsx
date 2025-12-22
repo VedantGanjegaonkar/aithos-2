@@ -1,50 +1,40 @@
-// app/(root)/page.tsx (Landing Page - Final Version with Large Image Area)
+// app/(root)/page.tsx (Landing Page - Fixed for Next.js 15 Serialization)
 
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/actions/auth.action";
 
-// --- FeatureCard Component (Image Container set to a large, fixed square) ---
+// --- FeatureCard Component ---
 const FeatureCard = ({ title, description, icon }: { title: string, description: string, icon: string }) => (
-    // Card Container: rounded-2xl corners, dark background
     <div className="p-6 bg-dark-300 rounded-2xl border border-border shadow-xl transition hover:border-primary-200">
-        
-        {/* ICON CONTAINER: SET TO APPROXIMATELY 480x480 */}
-        {/* We use w-full (which is determined by the grid column width) 
-           and a large, fixed height (h-[480px]) to achieve the requested size. */}
         <div className="relative w-full h-[480px] bg-dark-100 rounded-lg mb-6 overflow-hidden">
             <Image 
                 src={icon} 
                 alt={title} 
-                // Set the intrinsic size properties to the requested dimensions
                 width={480} 
                 height={480} 
-                // STRETCH TO FILL CONTAINER: w-full and h-full 
-                // object-cover forces the image to cover the entire 480x480 area
                 className="w-full h-full object-cover" 
             />
         </div>
-        
         <h3 className="text-2xl font-bold text-white mb-2">{title}</h3>
         <p className="text-gray-400">{description}</p>
     </div>
 );
-// --- End FeatureCard Component ---
 
-
-// This is an async Server Component to determine authentication status
 export default async function LandingPage() {
+    // 1. Fetch raw user data from Firestore Admin
+    const rawUser = await getCurrentUser();
     
-    // Fetch user status
-    const user = await getCurrentUser();
+    // 2. SERIALIZE: This is the crucial fix. 
+    // It converts Firestore Timestamp classes into plain strings so Next.js won't crash.
+    const user = rawUser ? JSON.parse(JSON.stringify(rawUser)) : null;
+    
     const isAuthenticated = !!user;
     
-    // Determine target links and button text conditionally
     const primaryLink = isAuthenticated ? "/dashboard" : "/sign-in";
     const heroButtonText = isAuthenticated ? "Go to Dashboard" : "Start Interview Practice Now";
     const ctaButtonText = isAuthenticated ? "Go to Dashboard" : "Sign In / Sign Up";
-
 
     return (
         <main className="flex flex-col gap-24">
@@ -58,7 +48,6 @@ export default async function LandingPage() {
                     <p className="text-xl text-gray-300 mb-8">
                         Practice real-world scenarios, get instant analysis on your speaking, and structure your perfect answer. Stop guessing, start succeeding.
                     </p>
-                    {/* Hero CTA Link (Conditional) */}
                     <Link href={primaryLink}>
                         <Button className="btn-call call-button-gradient text-lg px-8 py-6 shadow-lg shadow-primary-200/40 transition duration-300">
                             {heroButtonText}
@@ -83,7 +72,6 @@ export default async function LandingPage() {
                     Our platform analyzes every aspect of your performance, from content to delivery.
                 </p>
                 
-                {/* NOTE: With images this large, the layout might look crowded or require horizontal scrolling on smaller screens. */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <FeatureCard 
                         title="Real-time Speech Analysis"
@@ -109,7 +97,6 @@ export default async function LandingPage() {
                 <p className="text-xl text-gray-300 mb-8">
                     Join thousands of professionals mastering their careers with Aithos.
                 </p>
-                {/* Bottom CTA Link (Conditional) */}
                 <Link href={primaryLink}>
                     <Button className="btn-call text-lg px-8 py-4 bg-primary-200 hover:bg-primary-300 transition duration-300">
                         {ctaButtonText}
