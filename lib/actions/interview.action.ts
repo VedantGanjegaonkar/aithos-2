@@ -17,7 +17,7 @@ export async function createInterviewSession(params: {
   try {
     // 1. Call your existing Generate API logic
     // We use the full URL to ensure the server-side fetch hits the correct route
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/vapi/generate`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/vapi/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
