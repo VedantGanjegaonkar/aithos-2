@@ -10,19 +10,20 @@ import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import {
-  createUserWithEmailAndPassword,
+  // createUserWithEmailAndPassword, // Commented out
   signInWithEmailAndPassword,
 } from "firebase/auth";
 
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 
-import { signIn, signUp } from "@/lib/actions/auth.action";
+import { signIn /* signUp */ } from "@/lib/actions/auth.action"; // Commented out signUp
 import FormField from "./FormField";
 
 const authFormSchema = (type: FormType) => {
   return z.object({
-    name: type === "sign-up" ? z.string().min(3) : z.string().optional(),
+    // Name is only needed for sign-up, which is being disabled
+    name: z.string().optional(),
     email: z.string().email(),
     password: z.string().min(3),
   });
@@ -44,6 +45,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     try {
       if (type === "sign-up") {
+        /* Commenting out Sign-Up Logic
         const { name, email, password } = data;
 
         const userCredential = await createUserWithEmailAndPassword(
@@ -66,7 +68,10 @@ const AuthForm = ({ type }: { type: FormType }) => {
 
         toast.success("Account created successfully. Please sign in.");
         router.push("/sign-in");
+        */
+        toast.error("Sign up is currently disabled.");
       } else {
+        // Sign-In Logic remains untouched
         const { email, password } = data;
 
         const userCredential = await signInWithEmailAndPassword(
@@ -112,6 +117,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
             onSubmit={form.handleSubmit(onSubmit)}
             className="w-full space-y-6 mt-4 form"
           >
+            {/* Logic for showing Name field remains but won't be functional for submission */}
             {!isSignIn && (
               <FormField
                 control={form.control}
