@@ -1,13 +1,26 @@
 import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
 
-const razorpay = new Razorpay({
-  key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
-
 export async function POST(req: Request) {
+  // 1. Check if keys exist before doing anything
+  const key_id = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+  const key_secret = process.env.RAZORPAY_KEY_SECRET;
+
+  if (!key_id || !key_secret || key_id.includes("PLACEHOLDER")) {
+    console.error("❌ RAZORPAY ERROR: Keys are missing or placeholders.");
+    return NextResponse.json(
+      { error: "Payments are currently disabled." }, 
+      { status: 503 }
+    );
+  }
+
   try {
+    // 2. Initialize inside the handler so it doesn't crash the build
+    const razorpay = new Razorpay({
+      key_id: key_id,
+      key_secret: key_secret,
+    });
+
     const body = await req.json();
     const { amount, userId, tokens } = body;
 
@@ -22,7 +35,7 @@ export async function POST(req: Request) {
       amount: Math.round(Number(amount) * 100), // Convert to paise
       currency: "INR",
       receipt: `rcpt_${Date.now()}`,
-      notes: { userId, tokens }, // 👈 Crucial: This gets sent to the webhook later
+      notes: { userId, tokens },
     };
 
     const order = await razorpay.orders.create(options);
