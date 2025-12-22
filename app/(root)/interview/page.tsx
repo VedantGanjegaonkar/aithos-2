@@ -4,9 +4,9 @@
 import { useState } from 'react';
 import Image from "next/image";
 // Import Agent and CallStatus from the Agent component
-import Agent, { CallStatus } from "@/components/Agent"; 
+import Agent, { CallStatus } from "@/components/Agent";
 import InterviewTimer from "@/components/InterviewTimer";
-import { getInstitutionImageUrl } from "@/lib/utils";
+import { getInstitutionLogoUrl as getInstitutionImageUrl } from "@/lib/utils";
 import DisplayTechIcons from "@/components/DisplayTechIcons";
 import { redirect } from 'next/navigation';
 
@@ -36,11 +36,11 @@ interface InterviewClientConsoleProps {
     interviewId: string;
 }
 
-const InterviewClientConsole = ({ 
-    interview, 
-    user, 
-    feedback, 
-    interviewId 
+const InterviewClientConsole = ({
+    interview,
+    user,
+    feedback,
+    interviewId
 }: InterviewClientConsoleProps) => {
     // Client-side state for call status, passed to Agent and Timer
     const [currentCallStatus, setCurrentCallStatus] = useState<CallStatus>(CallStatus.INACTIVE);
@@ -52,7 +52,7 @@ const InterviewClientConsole = ({
     return (
         <>
             <div className="flex flex-row gap-4 justify-between items-center">
-                
+
                 <div className="flex flex-row gap-4 items-center max-sm:flex-col">
                     <div className="flex flex-row gap-4 items-center">
                         <Image
@@ -66,7 +66,7 @@ const InterviewClientConsole = ({
                     </div>
                     <DisplayTechIcons techStack={interview.techstack} />
                 </div>
-                
+
                 {/* Interview Timer and Type Badge */}
                 <div className="flex items-center gap-4">
                     <InterviewTimer callStatus={currentCallStatus} />
@@ -84,9 +84,9 @@ const InterviewClientConsole = ({
                 questions={interview.questions}
                 feedbackId={feedback?.id}
                 accessToken={interview.accessToken!}
-                callId={interview.callId!} 
+                callId={interview.callId!}
                 // FIX: Passing the required onStatusChange prop
-                onStatusChange={setCurrentCallStatus} 
+                onStatusChange={setCurrentCallStatus}
             />
         </>
     );
