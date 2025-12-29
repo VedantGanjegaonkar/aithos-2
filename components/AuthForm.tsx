@@ -10,14 +10,14 @@ import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import {
-  // createUserWithEmailAndPassword, // Commented out
+  createUserWithEmailAndPassword, // Commented out
   signInWithEmailAndPassword,
 } from "firebase/auth";
 
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 
-import { signIn /* signUp */ } from "@/lib/actions/auth.action"; // Commented out signUp
+import { signIn, signUp } from "@/lib/actions/auth.action"; // Commented out signUp
 import FormField from "./FormField";
 
 const authFormSchema = (type: FormType) => {
@@ -45,7 +45,6 @@ const AuthForm = ({ type }: { type: FormType }) => {
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     try {
       if (type === "sign-up") {
-        /* Commenting out Sign-Up Logic
         const { name, email, password } = data;
 
         const userCredential = await createUserWithEmailAndPassword(
@@ -68,9 +67,8 @@ const AuthForm = ({ type }: { type: FormType }) => {
 
         toast.success("Account created successfully. Please sign in.");
         router.push("/sign-in");
-        */
-        toast.error("Sign up is currently disabled.");
-      } else {
+      }
+      else {
         // Sign-In Logic remains untouched
         const { email, password } = data;
 
