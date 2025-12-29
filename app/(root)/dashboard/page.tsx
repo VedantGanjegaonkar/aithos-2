@@ -69,7 +69,7 @@ async function DashboardPage() {
               {/* Subtle background glow for the robot */}
               <div className="absolute inset-0 bg-primary-200/20 blur-[80px] rounded-full animate-pulse" />
               <Image
-                src="/robot.png"
+                src="/aithos-robo-img.jpeg"
                 alt="AI Interviewer"
                 width={300}
                 height={300}

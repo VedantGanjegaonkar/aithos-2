@@ -56,7 +56,7 @@ export default async function LandingPage() {
                 </div>
                 <div className="w-full lg:w-1/2 flex justify-center">
                     <Image
-                        src="/robot.png"
+                        src="/aithos-robo-img.jpeg"
                         alt="AI Interviewer"
                         width={450}
                         height={450}

@@ -16,6 +16,15 @@ type FocusOption =
   | "current affairs & business awareness"
   | "mixed";
 
+const colleges = [
+  "IIM Ahmedabad",
+  "IIM Bangalore",
+  "IIM Calcutta",
+  "XLRI Jamshedpur",
+  "FMS Delhi",
+  "NMIMS Mumbai",
+  "Others"
+];
 const FOCUS_OPTIONS: { label: string; value: FocusOption }[] = [
   { label: "Personal & Motivation", value: "personal & motivation" },
   { label: "Academics", value: "academics" },
@@ -39,7 +48,7 @@ interface SetupFormProps {
 const SetupForm: React.FC<SetupFormProps> = ({ userId, username }) => {
   const router = useRouter();
 
-  const [targetSchool, setTargetSchool] = useState("IIM A");
+  const [targetSchool, setTargetSchool] = useState("IIM Ahmedabad");
   const [program, setProgram] = useState("MBA");
   const [selectedPresets, setSelectedPresets] = useState<string[]>([
     "engineering background",
@@ -149,17 +158,42 @@ const SetupForm: React.FC<SetupFormProps> = ({ userId, username }) => {
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-5">
           <div>
-            <label className="mb-2 block text-sm font-medium text-gray-300">Target B-School</label>
-            <input
-              type="text"
-              required
-              value={targetSchool}
-              onChange={(e) => setTargetSchool(e.target.value)}
-              placeholder="e.g. IIM Ahmedabad"
-              className="w-full rounded-lg border border-neutral-700 bg-neutral-800/50 text-white px-4 py-2.5 text-sm focus:border-primary-200 outline-none transition-all"
-            />
-          </div>
+            <label className="mb-2 block text-sm font-medium text-gray-300">
+              Target B-School
+            </label>
 
+            <select
+              value={
+                colleges.includes(targetSchool) ? targetSchool : "Others"
+              }
+              onChange={(e) => {
+                if (e.target.value !== "Others") {
+                  setTargetSchool(e.target.value);
+                } else {
+                  setTargetSchool(""); // reset for typing
+                }
+              }}
+              className="w-full rounded-lg border border-neutral-700 bg-neutral-800/50 text-white px-4 py-2.5 text-sm focus:border-primary-200 outline-none transition-all"
+            >
+              {colleges.map((college, index) => (
+                <option key={index} value={college}>
+                  {college}
+                </option>
+              ))}
+            </select>
+
+            {/* Input appears if value is not in predefined list */}
+            {!colleges.includes(targetSchool) && (
+              <input
+                type="text"
+                required
+                value={targetSchool}
+                onChange={(e) => setTargetSchool(e.target.value)}
+                placeholder="Enter your B-School name"
+                className="mt-3 w-full rounded-lg border border-neutral-700 bg-neutral-800/50 text-white px-4 py-2.5 text-sm focus:border-primary-200 outline-none transition-all"
+              />
+            )}
+          </div>
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-300">Program</label>
             <input
