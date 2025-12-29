@@ -74,6 +74,14 @@ const SetupForm: React.FC<SetupFormProps> = ({ userId, username }) => {
     if (customHighlights.trim()) parts.push(customHighlights.trim());
     return parts.length === 0 ? "General profile" : parts.join(", ");
   };
+  const handleFocusChange = (value: FocusOption) => {
+    if (value !== "mixed") {
+      toast("We are launching it soon 🚀");
+      return;
+    }
+
+    setFocus(value);
+  };
 
   const requestMicAccess = async () => {
     try {
@@ -211,7 +219,9 @@ const SetupForm: React.FC<SetupFormProps> = ({ userId, username }) => {
             <select
               required
               value={focus}
-              onChange={(e) => setFocus(e.target.value as FocusOption)}
+              onChange={(e) =>
+                handleFocusChange(e.target.value as FocusOption)
+              }
               className="w-full rounded-lg border border-neutral-700 bg-neutral-800/50 text-white px-4 py-2.5 text-sm focus:border-primary-200 outline-none transition-all"
             >
               {FOCUS_OPTIONS.map((opt) => (
