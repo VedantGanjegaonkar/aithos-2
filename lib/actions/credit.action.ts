@@ -57,9 +57,9 @@ export async function consumeInterviewCredit(userId: string) {
 export async function getUserCredits(userId: string) {
     try {
         const userDoc = await db.collection("users").doc(userId).get();
-        if (!userDoc.exists) return 2; 
+        if (!userDoc.exists) return 1; 
         const data = userDoc.data();
-        return data?.credits !== undefined ? data.credits : 2;
+        return data?.credits !== undefined ? data.credits : 1;
     } catch (error) {
         return 0;
     }
