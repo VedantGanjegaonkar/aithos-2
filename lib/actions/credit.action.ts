@@ -21,7 +21,7 @@ export async function consumeInterviewCredit(userId: string) {
         currentCredits = 1;
       } else {
         const userData = userDoc.data();
-        currentCredits = userData?.credits !== undefined ? userData.credits : 2;
+        currentCredits = userData?.credits !== undefined ? userData.credits : 1;
       }
 
       if (currentCredits < 1) {
