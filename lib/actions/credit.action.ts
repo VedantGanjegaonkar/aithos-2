@@ -18,7 +18,7 @@ export async function consumeInterviewCredit(userId: string) {
 
       if (!userDoc.exists) {
         // Initialize new user with 2 credits
-        currentCredits = 2;
+        currentCredits = 1;
       } else {
         const userData = userDoc.data();
         currentCredits = userData?.credits !== undefined ? userData.credits : 2;
