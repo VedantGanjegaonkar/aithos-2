@@ -2,18 +2,16 @@
 
 import { db } from "@/firebase/admin";
 import admin from "firebase-admin";
-import Retell from "retell-sdk";
+import { listLiveKitRooms } from "@/lib/livekit";
 
-const retell = new Retell({ apiKey: process.env.RETELL_API_KEY! });
-const MAX_CONCURRENCY = 18; 
+const MAX_CONCURRENCY = 5; 
 
 export async function joinQueueOrStart(userId: string) {
   const queueRef = db.collection("interview_queue");
 
-  // 1. Get Live Concurrency from Retell
-  const allCalls = await retell.call.list({ limit: 50 });
-  const ongoingCalls = allCalls.filter(call => call.call_status === "ongoing");
-  const currentCount = ongoingCalls.length;
+  // 1. Get live room concurrency from LiveKit
+  const rooms = await listLiveKitRooms();
+  const currentCount = rooms.length;
 
   console.log(`📊 Concurrency Check: ${currentCount}/${MAX_CONCURRENCY} calls active.`);
 
