@@ -2,52 +2,18 @@
 
 import { generateObject } from "ai";
 import { google } from "@ai-sdk/google";
-import Retell from "retell-sdk"; 
 
 import { db } from "@/firebase/admin";
 import { feedbackSchema } from "@/constants";
 
-const retell = new Retell({
-  apiKey: process.env.RETELL_API_KEY!,
-});
-
 export async function createFeedback(params: CreateFeedbackParams) {
-  const { interviewId, userId, callId, feedbackId } = params;
+  const { interviewId, userId, feedbackId } = params;
 
   try {
-    console.log(`[FEEDBACK] 🟢 Starting Feedback Process for Call ID: ${callId}`);
-
-    let retellTranscript: any[] = [];
-    let attempts = 0;
-    const maxAttempts = 10; 
-    const delayMs = 2000;  
-
-    // --- POLLING MECHANISM ---
-    while (attempts < maxAttempts) {
-      attempts++;
-      console.log(`[FEEDBACK] 🔄 Polling Retell API (Attempt ${attempts}/${maxAttempts})...`);
-      
-      const callResponse = await retell.call.retrieve(callId);
-      
-      if (callResponse.call_status === "ended") {
-        console.log(`[FEEDBACK] ✅ Call Status is 'ended'. Fetching transcript...`);
-        retellTranscript = callResponse.transcript_object || [];
-        
-        if (retellTranscript.length > 0) {
-            break; 
-        } else {
-            console.log(`[FEEDBACK] ⚠️ Call ended but transcript is empty. Waiting...`);
-        }
-      } else {
-        console.log(`[FEEDBACK] ⏳ Call status is '${callResponse.call_status}'. Waiting...`);
-      }
-
-      await new Promise(resolve => setTimeout(resolve, delayMs));
-    }
-
-    if (retellTranscript.length === 0) {
-        console.warn(`[FEEDBACK] ❌ Failed to retrieve transcript after polling.`);
-    }
+    console.log(`[FEEDBACK] 🟢 Starting Feedback Process for interview: ${interviewId}`);
+    const interviewDoc = await db.collection("interviews").doc(interviewId).get();
+    const interviewData = interviewDoc.data() || {};
+    const rawTranscript = Array.isArray(interviewData.transcript) ? interviewData.transcript : [];
 
       // --- TRANSCRIPT PARSING FOR GEMINI ---
       // We parse the raw `retellTranscript` (which contains `role`, `content`, `words`, etc.)
@@ -95,14 +61,14 @@ export async function createFeedback(params: CreateFeedbackParams) {
         return compact;
       }
 
-      const transcript = retellTranscript.map((item: any) => ({
+      const transcript = rawTranscript.map((item: any) => ({
         role: item.role === "agent" ? "assistant" : "user",
         content: (item.content || item.text || "").replace(/\s+/g, " ").trim(),
       }));
 
-      const compactTranscript = prepareTranscriptForGemini(retellTranscript, { maxMessages: 12, maxCharsPerMessage: 220 });
+      const compactTranscript = prepareTranscriptForGemini(rawTranscript, { maxMessages: 12, maxCharsPerMessage: 220 });
 
-      console.log(`[FEEDBACK] 🤖 Starting Gemini analysis on ${retellTranscript.length} messages (compact ${compactTranscript.length} chars)...`);
+      console.log(`[FEEDBACK] 🤖 Starting Gemini analysis on ${rawTranscript.length} messages (compact ${compactTranscript.length} chars)...`);
 
     // --- GEMINI ANALYSIS ---
     const { object } = await generateObject({
@@ -142,7 +108,6 @@ export async function createFeedback(params: CreateFeedbackParams) {
         await db.collection("feedback_raw").doc().set({
           interviewId,
           userId,
-          callId,
           rawResponse: object,
           validationError: parsed.error.format ? parsed.error.format() : String(parsed.error),
           createdAt: new Date().toISOString(),
@@ -189,6 +154,21 @@ export async function createFeedback(params: CreateFeedbackParams) {
 export async function getInterviewById(id: string): Promise<Interview | null> {
   const interview = await db.collection("interviews").doc(id).get();
   return interview.data() as Interview | null;
+}
+
+export async function saveInterviewTranscript(params: {
+  interviewId: string;
+  transcript: { role: "assistant" | "user" | "system"; content: string }[];
+}) {
+  const { interviewId, transcript } = params;
+  await db.collection("interviews").doc(interviewId).set(
+    {
+      transcript,
+      updatedAt: new Date().toISOString(),
+    },
+    { merge: true }
+  );
+  return { success: true };
 }
 
 export async function getFeedbackByInterviewId(

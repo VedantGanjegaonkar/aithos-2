@@ -4,9 +4,9 @@
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { RetellWebClient } from "retell-client-js-sdk"; 
+import { Room, RoomEvent, createLocalAudioTrack } from "livekit-client";
 import { cn } from "@/lib/utils";
-import { createFeedback } from "@/lib/actions/general.action";
+import { createFeedback, saveInterviewTranscript } from "@/lib/actions/general.action";
 
 interface SavedMessage {
   role: "user" | "system" | "assistant";
@@ -37,8 +37,6 @@ const Agent = ({
   userId,
   interviewId,
   feedbackId,
-  type,
-  questions,
   accessToken, 
   callId, 
   onStatusChange, 
@@ -50,7 +48,7 @@ const Agent = ({
   const [lastMessage, setLastMessage] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false); 
   
-  const retellClientRef = useRef<RetellWebClient | null>(null);
+  const roomRef = useRef<Room | null>(null);
   
   // FIX: Create a ref to skip the initial mount render for the status communication
   const isInitialMount = useRef(true); 
@@ -71,95 +69,49 @@ const Agent = ({
   }, [callStatus, onStatusChange]);
 
 
-  // EFFECT 2: Retell SDK setup and event handling
+  // EFFECT 2: LiveKit setup and event handling
   useEffect(() => {
-    if (!retellClientRef.current) {
-      retellClientRef.current = new RetellWebClient(); 
+    if (!roomRef.current) {
+      const room = new Room();
+      roomRef.current = room;
 
-      const onConnect = () => {
-        console.log("Retell Call Started");
+      room.on(RoomEvent.Connected, () => {
+        console.log("LiveKit Room Connected");
         setCallStatus(CallStatus.ACTIVE);
-      };
+      });
 
-      const onCallEnded = () => {
-        console.log("Retell Call Ended (Event Triggered)");
+      room.on(RoomEvent.Disconnected, () => {
+        console.log("LiveKit Room Disconnected");
         setCallStatus(CallStatus.FINISHED);
-      };
+      });
 
-      const onError = (error: Error) => {
-        console.log("Retell Error:", error);
-        setCallStatus(CallStatus.FINISHED);
-      };
+      room.on(RoomEvent.TrackSubscribed, (_track, _publication, participant) => {
+        if (!participant.isLocal) setIsSpeaking(true);
+      });
 
-      const onMessage = (message: any) => { 
-        if (message.event === "message" && message.message) {
-            const { role, content } = message.message;
-            if (role === 'agent' || role === 'user') {
-                const newMessage: SavedMessage = { role: role === "agent" ? "assistant" : "user", content: content };
-                setMessages((prev) => [...prev, newMessage]);
-            }
-        }
-      };
-      
-      const onAudio = (event: any) => {
-          if (event.event === "audio" && event.audio) {
-            setIsSpeaking(event.audio.role === "agent");
+      room.on(RoomEvent.TrackUnsubscribed, (_track, _publication, participant) => {
+        if (!participant.isLocal) setIsSpeaking(false);
+      });
+
+      room.on(RoomEvent.DataReceived, (payload) => {
+        try {
+          const text = new TextDecoder().decode(payload);
+          const parsed = JSON.parse(text);
+          if ((parsed.role === "assistant" || parsed.role === "user") && parsed.content) {
+            setMessages((prev) => [...prev, { role: parsed.role, content: parsed.content }]);
           }
-      }
-
-      const client = retellClientRef.current;
-      client.on("connect", onConnect);
-      client.on("stop", onCallEnded);
-      client.on("call_ended", onCallEnded);
-      client.on("error", onError);
-      client.on("message", onMessage);
-      client.on("audio", onAudio);
+        } catch {
+          // ignore non-json data packets
+        }
+      });
     }
     
     return () => {
-        if (retellClientRef.current) {
-            const client = retellClientRef.current;
-            client.off("connect");
-            client.off("stop");
-            client.off("call_ended");
-            client.off("error");
-            client.off("message");
-            client.off("audio");
-            if (callStatus === CallStatus.ACTIVE || callStatus === CallStatus.CONNECTING) {
-                 client.stopCall();
-            }
+        if (roomRef.current && (callStatus === CallStatus.ACTIVE || callStatus === CallStatus.CONNECTING)) {
+            roomRef.current.disconnect();
         }
     };
   }, [callStatus]);
-
-  // EFFECT 3: Server Polling to check if call was terminated externally
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | null = null;
-    const pollInterval = 3000;
-
-    async function checkCallStatus() {
-      try {
-        const res = await fetch(`/api/retell/status?callId=${encodeURIComponent(callId)}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data?.call_status === 'ended' && callStatus !== CallStatus.FINISHED) {
-          console.log('[CLIENT] Detected call ended via server poll');
-          setCallStatus(CallStatus.FINISHED);
-        }
-      } catch (err) {
-        console.warn('[CLIENT] Poll error', err);
-      }
-    }
-
-    if (callStatus === CallStatus.ACTIVE) {
-      interval = setInterval(checkCallStatus, pollInterval);
-      checkCallStatus();
-    }
-
-    return () => {
-      if (interval) clearInterval(interval as any);
-    };
-  }, [callStatus, callId]);
 
   // EFFECT 4: Update last message for transcript display
   useEffect(() => {
@@ -175,11 +127,14 @@ const Agent = ({
     setIsGenerating(true);
     
     console.log("[CLIENT] Requesting server to fetch transcript and generate feedback...");
+    if (interviewId) {
+      await saveInterviewTranscript({ interviewId, transcript: messages });
+    }
 
     const { success, feedbackId: id } = await createFeedback({
       interviewId: interviewId!,
       userId: userId!,
-      callId: callId, 
+      callId: callId,
       feedbackId,
     });
 
@@ -209,23 +164,25 @@ const Agent = ({
       return;
     }
 
-    if (retellClientRef.current && callStatus === CallStatus.INACTIVE) {
+    if (roomRef.current && callStatus === CallStatus.INACTIVE) {
         console.log('[CLIENT] Attempting to start call...');
         setCallStatus(CallStatus.CONNECTING);
         try {
-          const startResult = retellClientRef.current.startCall({ accessToken: accessToken });
-          if (startResult && typeof (startResult as any).then === 'function') {
-            (startResult as Promise<any>)
-              .then((res) => console.log('[CLIENT] startCall resolved', res))
-              .catch((err) => {
-                console.error('[CLIENT] startCall error (async):', err);
-                // On error, revert status back to inactive
-                setCallStatus(CallStatus.INACTIVE); 
-              });
-          }
+          const livekitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL;
+          if (!livekitUrl) throw new Error("Missing NEXT_PUBLIC_LIVEKIT_URL");
+
+          roomRef.current.connect(livekitUrl, accessToken)
+            .then(async () => {
+              const localAudioTrack = await createLocalAudioTrack();
+              await roomRef.current?.localParticipant.publishTrack(localAudioTrack);
+              console.log('[CLIENT] LiveKit connection established');
+            })
+            .catch((err) => {
+              console.error('[CLIENT] LiveKit connect error:', err);
+              setCallStatus(CallStatus.INACTIVE);
+            });
         } catch (err) {
-          console.error('[CLIENT] startCall exception:', err);
-          // On exception, revert status back to inactive
+          console.error('[CLIENT] LiveKit exception:', err);
           setCallStatus(CallStatus.INACTIVE);
         }
     }
@@ -237,11 +194,11 @@ const Agent = ({
       if (!ok) return;
     }
 
-    if (retellClientRef.current) {
+    if (roomRef.current) {
       try {
-        retellClientRef.current.stopCall();
+        roomRef.current.disconnect();
       } catch (err) {
-        console.warn("Error stopping call:", err);
+        console.warn("Error disconnecting room:", err);
       }
     }
 

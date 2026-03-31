@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
-import Retell from 'retell-sdk';
-
-const retell = new Retell({ 
-  apiKey: process.env.RETELL_API_KEY || '' 
-});
+import { listLiveKitRooms } from "@/lib/livekit";
+const MAX_CONCURRENCY = 5;
 
 export async function GET(request: Request) {
   try {
@@ -12,24 +9,21 @@ export async function GET(request: Request) {
 
     // SCENARIO A: Specific Call Status
     if (callId) {
-      const callResponse = await retell.call.retrieve(callId);
-      console.log(`[RETELL LOG] Status for ${callId}: ${callResponse.call_status}`);
-      return NextResponse.json({ call_status: callResponse.call_status });
+      const rooms = await listLiveKitRooms();
+      const roomExists = rooms.some((room) => room.name === callId);
+      return NextResponse.json({ call_status: roomExists ? "ongoing" : "ended" });
     }
 
     // SCENARIO B: Concurrency Check
-    console.log("--- 🎙️ RETELL CONCURRENCY CHECK START ---");
+    console.log("--- 🎙️ LIVEKIT CONCURRENCY CHECK START ---");
     
-    const allCalls = await retell.call.list({ limit: 50 });
-    const ongoingCalls = allCalls.filter(call => call.call_status === "ongoing");
-    
-    const ongoingCount = ongoingCalls.length;
-    const MAX_CONCURRENCY = 10; // Change this to 0 if you want to test the "Busy" error!
+    const rooms = await listLiveKitRooms();
+    const ongoingCount = rooms.length;
 
     // LOGS FOR TERMINAL
     console.log(`Active Agents: ${ongoingCount}`);
     console.log(`System Status: ${ongoingCount < MAX_CONCURRENCY ? "✅ AVAILABLE" : "❌ BUSY"}`);
-    console.log("--- 🎙️ RETELL CONCURRENCY CHECK END ---");
+    console.log("--- 🎙️ LIVEKIT CONCURRENCY CHECK END ---");
 
     return NextResponse.json({ 
       canStart: ongoingCount < MAX_CONCURRENCY,
@@ -37,8 +31,9 @@ export async function GET(request: Request) {
       limit: MAX_CONCURRENCY
     });
 
-  } catch (err: any) {
-    console.error('❌ Retell API Error:', err.message);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error('❌ LiveKit API Error:', message);
     return NextResponse.json({ error: "Server Error" }, { status: 500 });
   }
 }

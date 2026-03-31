@@ -1,23 +1,15 @@
-import { generateText } from "ai";
-import { google } from "@ai-sdk/google";
-import Retell from "retell-sdk";
 
 import { db } from "@/firebase/admin";
+import { createLiveKitParticipantToken, createLiveKitRoom } from "@/lib/livekit";
 // FIX: Import the renamed function
 import { getInstitutionLogoUrl as getInstitutionImageUrl } from "@/lib/utils";
 
-// Initialize Retell Client
-const retell = new Retell({
-  apiKey: process.env.RETELL_API_KEY!,
-});
+const livekitHost = process.env.LIVEKIT_URL!;
 
 export async function POST(request: Request) {
   const {
-    role,
-    type,
     techstack,
     level,
-    amount,
     focus,
     targetSchool,
     program,
@@ -77,17 +69,24 @@ export async function POST(request: Request) {
     const dummyJson = "[]"; 
     const parsedQuestions = JSON.parse(dummyJson);
     // -----------------------------------------------------------
-    // 2. RETELL AI ROUTING
+    // 2. LIVEKIT ROOM + TOKEN
     // -----------------------------------------------------------
-    const retellCall = await retell.call.createWebCall({
-      agent_id: process.env.RETELL_AGENT_ID!,
-      retell_llm_dynamic_variables: {
-        username: username,
-        program: program,
-        targetSchool: targetSchool,
-        profileHighlights: profileHighlights,
-        focus: focus,
-      },
+    const roomName = `interview-${userid}-${Date.now()}`;
+    await createLiveKitRoom(roomName).catch(() => null);
+
+    const metadata = JSON.stringify({
+      username,
+      program,
+      targetSchool,
+      profileHighlights,
+      focus,
+    });
+
+    const accessToken = await createLiveKitParticipantToken({
+      identity: `candidate-${userid}`,
+      name: username,
+      room: roomName,
+      metadata,
     });
 
     // -----------------------------------------------------------
@@ -105,8 +104,9 @@ export async function POST(request: Request) {
       // This will now save the dynamic Logo.dev or UI-Avatar URL
       coverImage: getInstitutionImageUrl(targetSchool),
       createdAt: new Date().toISOString(),
-      accessToken: retellCall.access_token,
-      callId: retellCall.call_id,
+      accessToken,
+      callId: roomName,
+      livekitUrl: livekitHost,
     };
 
     const interviewRef = await db.collection("interviews").add(interview);
@@ -116,7 +116,8 @@ export async function POST(request: Request) {
       {
         success: true,
         interviewId: interviewRef.id,
-        accessToken: retellCall.access_token,
+        accessToken,
+        callId: roomName,
       },
       {
         status: 200,
@@ -141,7 +142,7 @@ export async function POST(request: Request) {
 
 export async function GET() {
   return Response.json(
-    { success: true, data: "Retell Agent Ready" },
+    { success: true, data: "LiveKit Agent Ready" },
     {
       status: 200,
       headers: {
