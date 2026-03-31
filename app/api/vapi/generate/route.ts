@@ -82,7 +82,7 @@ export async function POST(request: Request) {
       focus,
     });
 
-    const accessToken = await createLiveKitParticipantToken({
+    const accessToken = createLiveKitParticipantToken({
       identity: `candidate-${userid}`,
       name: username,
       room: roomName,
