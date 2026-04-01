@@ -5,6 +5,7 @@ import { createLiveKitParticipantToken, createLiveKitRoom } from "@/lib/livekit"
 import { getInstitutionLogoUrl as getInstitutionImageUrl } from "@/lib/utils";
 
 const livekitHost = process.env.LIVEKIT_URL!;
+const livekitAgentName = process.env.LIVEKIT_AGENT_NAME || "";
 
 export async function POST(request: Request) {
   const {
@@ -82,11 +83,12 @@ export async function POST(request: Request) {
       focus,
     });
 
-    const accessToken = createLiveKitParticipantToken({
+    const accessToken = await createLiveKitParticipantToken({
       identity: `candidate-${userid}`,
       name: username,
       room: roomName,
       metadata,
+      agentName: livekitAgentName,
     });
 
     // -----------------------------------------------------------
