@@ -46,7 +46,7 @@ export default async function LandingPage() {
                         Master Your Interview with <span className="text-primary-200">AI-Driven Feedback</span>
                     </h1>
                     <p className="text-xl text-gray-300 mb-8">
-                        Practice real-world scenarios, get instant analysis on your speaking, and structure your perfect answer. Stop guessing, start succeeding.
+                        Practice real-world scenarios, get quick analysis on your speaking, and structure your perfect answer. Stop guessing, start succeeding.
                     </p>
                     <Link href={primaryLink}>
                         <Button className="btn-call call-button-gradient text-lg px-8 py-6 shadow-lg shadow-primary-200/40 transition duration-300">
